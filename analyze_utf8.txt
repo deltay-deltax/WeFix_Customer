@@ -1,0 +1,91 @@
+﻿Analyzing WeFix...                                              
+
+   info - 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre - lib\authentication\login.dart:42:14 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\authentication\login.dart:181:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\authentication\login.dart:185:21 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\authentication\login.dart:188:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\authentication\login.dart:236:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\authentication\login.dart:240:21 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\authentication\login.dart:243:40 - use_build_context_synchronously
+   info - Statements in an if should be enclosed in a block - lib\authentication\signup.dart:223:33 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\authentication\signup.dart:302:33 - curly_braces_in_flow_control_structures
+warning - This 'onError' handler must return a value assignable to 'GoogleSignInAccount?', but ends without returning a value - lib\core\services\auth_service.dart:55:11 - body_might_complete_normally_catch_error
+   info - Type could be non-nullable - lib\core\services\auth_service.dart:64:39 - unnecessary_nullable_for_final_variable_declarations
+  error - 'serviceDetails' isn't a field in the enclosing class - lib\data\models\service_model.dart:45:5 - initializing_formal_for_non_existent_field
+  error - Undefined name 'serviceDetails' - lib\data\models\service_model.dart:98:25 - undefined_identifier
+   info - Constructors for public widgets should have a named 'key' parameter - lib\views\chat_screen.dart:7:7 - use_key_in_widget_constructors
+   info - Constructors for public widgets should have a named 'key' parameter - lib\views\home_screen.dart:6:7 - use_key_in_widget_constructors
+   info - 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre - lib\views\home_screen.dart:29:12 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\home_screen.dart:151:78 - deprecated_member_use
+   info - The 'child' argument should be last in widget constructor invocations - lib\views\home_screen.dart:222:23 - sort_child_properties_last
+   info - Constructors for public widgets should have a named 'key' parameter - lib\views\nearby_shop_screen.dart:7:7 - use_key_in_widget_constructors
+warning - Unused import: '../core/constants/app_routes.dart' - lib\views\notifications_screen.dart:3:8 - unused_import
+   info - Constructors for public widgets should have a named 'key' parameter - lib\views\notifications_screen.dart:7:7 - use_key_in_widget_constructors
+   info - Unnecessary use of 'toList' in a spread - lib\views\notifications_screen.dart:43:22 - unnecessary_to_list_in_spreads
+   info - Unnecessary braces in a string interpolation - lib\views\product_details_screen.dart:363:33 - unnecessary_brace_in_string_interps
+   info - Constructors for public widgets should have a named 'key' parameter - lib\views\profile_screen.dart:9:7 - use_key_in_widget_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\views\profile_screen.dart:192:29 - use_build_context_synchronously
+   info - The variable name 'ProfileActionTile' isn't a lowerCamelCase identifier - lib\views\profile_screen.dart:270:8 - non_constant_identifier_names
+   info - The local variable '_val' starts with an underscore - lib\views\profile_screen.dart:416:12 - no_leading_underscores_for_local_identifiers
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\request_service_screen.dart:99:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\request_service_screen.dart:221:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\request_service_screen.dart:301:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\search_screen.dart:175:49 - deprecated_member_use
+  error - The named parameter 'height' isn't defined - lib\views\service_request_detail_screen.dart:57:15 - undefined_named_parameter
+  error - The named parameter 'width' isn't defined - lib\views\service_request_detail_screen.dart:58:15 - undefined_named_parameter
+  error - The named parameter 'color' isn't defined - lib\views\service_request_detail_screen.dart:59:15 - undefined_named_parameter
+  error - The named parameter 'width' isn't defined - lib\views\service_request_detail_screen.dart:177:21 - undefined_named_parameter
+  error - The getter 'serviceDetails' isn't defined for the type 'ServiceRequestModel' - lib\views\service_request_detail_screen.dart:192:27 - undefined_getter
+  error - The method '_buildTechnicianReport' isn't defined for the type 'ServiceRequestDetailScreen' - lib\views\service_request_detail_screen.dart:198:21 - undefined_method
+  error - The named parameter 'width' isn't defined - lib\views\service_request_detail_screen.dart:303:9 - undefined_named_parameter
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\service_request_detail_screen.dart:342:37 - deprecated_member_use
+  error - Undefined name 'req' - lib\views\service_request_detail_screen.dart:410:21 - undefined_identifier
+   info - An uninitialized variable should have an explicit type annotation - lib\views\service_request_detail_screen.dart:411:5 - prefer_typing_uninitialized_variables
+  error - 'return' can't be used as an identifier because it's a keyword - lib\views\service_request_detail_screen.dart:411:5 - expected_identifier_but_got_keyword
+  error - Expected to find ';' - lib\views\service_request_detail_screen.dart:411:5 - expected_token
+  error - Variables must be declared using the keywords 'const', 'final', 'var' or a type name - lib\views\service_request_detail_screen.dart:411:5 - missing_const_final_var_or_type
+   info - The variable name 'Container' isn't a lowerCamelCase identifier - lib\views\service_request_detail_screen.dart:411:12 - non_constant_identifier_names
+  error - Named parameters must be enclosed in curly braces ('{' and '}') - lib\views\service_request_detail_screen.dart:412:14 - named_parameter_outside_group
+  error - Using a colon as the separator before a default value is no longer supported - lib\views\service_request_detail_screen.dart:412:14 - obsolete_colon_for_default_value
+  error - Named parameters must be enclosed in curly braces ('{' and '}') - lib\views\service_request_detail_screen.dart:413:17 - named_parameter_outside_group
+  error - Using a colon as the separator before a default value is no longer supported - lib\views\service_request_detail_screen.dart:413:17 - obsolete_colon_for_default_value
+  error - The default value of an optional parameter must be constant - lib\views\service_request_detail_screen.dart:413:19 - non_constant_default_value
+  error - Named parameters must be enclosed in curly braces ('{' and '}') - lib\views\service_request_detail_screen.dart:418:12 - named_parameter_outside_group
+  error - Using a colon as the separator before a default value is no longer supported - lib\views\service_request_detail_screen.dart:418:12 - obsolete_colon_for_default_value
+  error - The default value of an optional parameter must be constant - lib\views\service_request_detail_screen.dart:418:14 - non_constant_default_value
+  error - A function body must be provided - lib\views\service_request_detail_screen.dart:476:6 - missing_function_body
+  error - Expected a method, getter, setter or operator declaration - lib\views\service_request_detail_screen.dart:477:3 - expected_executable
+  error - Expected a method, getter, setter or operator declaration - lib\views\service_request_detail_screen.dart:488:1 - expected_executable
+   info - Constructors for public widgets should have a named 'key' parameter - lib\views\service_update_screen.dart:9:7 - use_key_in_widget_constructors
+   info - Don't use 'BuildContext's across async gaps - lib\views\service_update_screen.dart:28:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\views\service_update_screen.dart:37:28 - use_build_context_synchronously
+  error - 'Container' isn't a function - lib\views\service_update_screen.dart:331:12 - invocation_of_non_function
+  error - The name 'Container' is defined in the libraries 'package:flutter/src/widgets/container.dart (via package:flutter/material.dart)' and 'package:wefix/views/service_request_detail_screen.dart' - lib\views\service_update_screen.dart:331:12 - ambiguous_import
+  error - 'Container' isn't a function - lib\views\service_update_screen.dart:368:14 - invocation_of_non_function
+  error - The name 'Container' is defined in the libraries 'package:flutter/src/widgets/container.dart (via package:flutter/material.dart)' and 'package:wefix/views/service_request_detail_screen.dart' - lib\views\service_update_screen.dart:368:14 - ambiguous_import
+  error - 'Container' isn't a function - lib\views\service_update_screen.dart:398:23 - invocation_of_non_function
+  error - The name 'Container' is defined in the libraries 'package:flutter/src/widgets/container.dart (via package:flutter/material.dart)' and 'package:wefix/views/service_request_detail_screen.dart' - lib\views\service_update_screen.dart:398:23 - ambiguous_import
+  error - 'Container' isn't a function - lib\views\service_update_screen.dart:473:12 - invocation_of_non_function
+  error - The name 'Container' is defined in the libraries 'package:flutter/src/widgets/container.dart (via package:flutter/material.dart)' and 'package:wefix/views/service_request_detail_screen.dart' - lib\views\service_update_screen.dart:473:12 - ambiguous_import
+warning - The declaration '_mon' isn't referenced - lib\views\service_update_screen.dart:487:8 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\warranty_screen.dart:95:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\warranty_screen.dart:187:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\warranty_screen.dart:211:63 - deprecated_member_use
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\file_uploader.dart:5:3 - use_key_in_widget_constructors
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\widgets\file_uploader.dart:5:3 - prefer_const_constructors_in_immutables
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\message_bubble.dart:6:3 - use_key_in_widget_constructors
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\widgets\message_bubble.dart:6:3 - prefer_const_constructors_in_immutables
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\nearby_shop_card.dart:24:41 - deprecated_member_use
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\notification_tile.dart:6:3 - use_key_in_widget_constructors
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\widgets\notification_tile.dart:6:3 - prefer_const_constructors_in_immutables
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\request_card.dart:8:3 - use_key_in_widget_constructors
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\widgets\request_card.dart:8:3 - prefer_const_constructors_in_immutables
+  error - 'Container' isn't a function - lib\widgets\request_card.dart:98:17 - invocation_of_non_function
+  error - The name 'Container' is defined in the libraries 'package:flutter/src/widgets/container.dart (via package:flutter/material.dart)' and 'package:wefix/views/service_request_detail_screen.dart' - lib\widgets\request_card.dart:98:17 - ambiguous_import
+   info - The 'child' argument should be last in widget constructor invocations - lib\widgets\request_card.dart:131:21 - sort_child_properties_last
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\shop_card.dart:6:3 - use_key_in_widget_constructors
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\widgets\shop_card.dart:6:3 - prefer_const_constructors_in_immutables
+   info - Use a 'SizedBox' to add whitespace to a layout - lib\widgets\shop_card.dart:9:12 - sized_box_for_whitespace
+   info - Constructors for public widgets should have a named 'key' parameter - lib\widgets\social_login_button.dart:9:3 - use_key_in_widget_constructors
+   info - Constructors in '@immutable' classes should be declared as 'const' - lib\widgets\social_login_button.dart:9:3 - prefer_const_constructors_in_immutables
+

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "670452211833",
+    "project_id": "wefix-4c3cd",
+    "storage_bucket": "wefix-4c3cd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:670452211833:android:212e410569b7b61f55f4a8",
+        "android_client_info": {
+          "package_name": "com.example.wefix"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "670452211833-ermk06i8de2hjec324mjbodjuojkqv0o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wefix",
+            "certificate_hash": "ad4b551731ed143a514c46fbf68c46adcd0ecc0b"
+          }
+        },
+        {
+          "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC36qBqY62HKWycpgWod5HNe4uOX3x5ZZ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
