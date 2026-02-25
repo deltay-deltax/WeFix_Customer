@@ -77,6 +77,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   hint: 'Name',
                   controller: nameCtrl,
                   fillColor: AppColors.inputFill,
+                  borderColor: AppColors.primary,
                 ),
                 const SizedBox(height: 18),
                 InputField(
@@ -84,6 +85,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: emailCtrl,
 
                   fillColor: AppColors.inputFill,
+                  borderColor: AppColors.primary,
                 ),
                 const SizedBox(height: 18),
                 InputField(
@@ -91,6 +93,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: phoneCtrl,
                   keyboardType: TextInputType.phone,
                   fillColor: AppColors.inputFill,
+                  borderColor: AppColors.primary,
                 ),
                 const SizedBox(height: 18),
                 InputField(
@@ -98,6 +101,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: passCtrl,
                   obscureText: true,
                   fillColor: AppColors.inputFill,
+                  borderColor: AppColors.primary,
                 ),
                 const SizedBox(height: 18),
                 InputField(
@@ -105,6 +109,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: confirmPassCtrl,
                   obscureText: true,
                   fillColor: AppColors.inputFill,
+                  borderColor: AppColors.primary,
                 ),
                 const SizedBox(height: 24),
                 SizedBox(

@@ -76,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: emailCtrl,
 
                   fillColor: AppColors.inputFill,
+                  borderColor: AppColors.primary,
                 ),
                 const SizedBox(height: 18),
                 InputField(
@@ -83,6 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: passCtrl,
                   obscureText: true,
                   fillColor: AppColors.inputFill,
+                  borderColor: AppColors.primary,
                 ),
                 const SizedBox(height: 3),
                 Align(

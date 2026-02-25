@@ -3,9 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/constants/app_routes.dart';
+import '../core/constants/app_colors.dart';
 import '../viewModels/profile_viewmodel.dart';
 import '../core/services/auth_service.dart';
-import 'simple_content_screen.dart';
+import 'terms_of_use_screen.dart';
+import 'contact_us_screen.dart';
+import 'extend_warranty_screen.dart';
+import 'raise_complaint_screen.dart';
+import 'my_complaints_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   @override
@@ -155,14 +160,12 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                       ProfileActionTile(
+                ProfileActionTile(
                         icon: Icons.engineering,
                         label: "Book a Technician",
-                        onTap: () {
-                          Navigator.pushNamed(context, AppRoutes.requestService);
-                        },
+                        onTap: () => _showComingSoon(context),
                       ),
-                       ProfileActionTile(
+                      ProfileActionTile(
                         icon: Icons.verified_user,
                         label: "Record Warranty",
                         onTap: () {
@@ -176,10 +179,7 @@ class ProfileScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const SimpleContentScreen(
-                                title: 'Extend Warranty',
-                                content: 'Extend your device warranty with our premium plans. Contact support for more details.',
-                              ),
+                              builder: (_) => const ExtendWarrantyScreen(),
                             ),
                           );
                         },
@@ -191,10 +191,7 @@ class ProfileScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const SimpleContentScreen(
-                                title: 'Terms of Use',
-                                content: '1. Services are provided "as is".\n2. We are not liable for data loss.\n3. Payments are non-refundable once service is started.\n4. Warranty covers only replaced parts.',
-                              ),
+                              builder: (_) => const TermsOfUseScreen(),
                             ),
                           );
                         },
@@ -206,10 +203,32 @@ class ProfileScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const SimpleContentScreen(
-                                title: 'Contact Us',
-                                content: 'Email: support@wefix.com\nPhone: +1 234 567 890\nAddress: 123 Tech Park, Innovation City',
-                              ),
+                              builder: (_) => const ContactUsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      ProfileActionTile(
+                        icon: Icons.report_problem_outlined,
+                        label: "Raise a Complaint",
+                        iconColor: Colors.redAccent,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RaiseComplaintScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      ProfileActionTile(
+                        icon: Icons.assignment_late_outlined,
+                        label: "My Complaints",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MyComplaintsScreen(),
                             ),
                           );
                         },
@@ -313,17 +332,90 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
+void _showComingSoon(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 36),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.construction_rounded,
+              color: AppColors.primary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Coming Soon! 🚀',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Booking a technician directly through the app is coming very soon. Stay tuned for updates!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.5,
+              height: 1.55,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Got it',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 // Hardcoded as a builder method for readability, but you can extract if needed.
 Widget ProfileActionTile({
   required IconData icon,
   required String label,
   bool last = false,
   VoidCallback? onTap,
+  Color? iconColor,
 }) {
   return Column(
     children: [
       ListTile(
-        leading: Icon(icon, color: Colors.blue, size: 28),
+        leading: Icon(icon, color: iconColor ?? Colors.blue, size: 28),
         title: Text(
           label,
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),

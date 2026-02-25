@@ -18,6 +18,8 @@ import '../views/product_details_screen.dart';
 import '../views/request_service_screen.dart';
 import '../views/edit_profile_screen.dart';
 import '../views/home_screen.dart';
+import '../views/raise_complaint_screen.dart';
+import '../views/my_complaints_screen.dart';
 
 class AppRouter {
   static Route<dynamic> generate(RouteSettings settings) {
@@ -77,6 +79,15 @@ class AppRouter {
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
           builder: (_) => EditProfileScreen(data: args ?? const {}),
+        );
+      case AppRoutes.raiseComplaint:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => RaiseComplaintScreen(preSelectedRequest: args),
+        );
+      case AppRoutes.myComplaints:
+        return MaterialPageRoute(
+          builder: (_) => const MyComplaintsScreen(),
         );
       default:
         return MaterialPageRoute(builder: (_) => HomeScreen());

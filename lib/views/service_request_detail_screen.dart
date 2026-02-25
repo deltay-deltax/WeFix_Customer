@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/models/service_request_model.dart';
 import '../core/constants/app_colors.dart';
+import 'raise_complaint_screen.dart';
 
 class ServiceRequestDetailScreen extends StatefulWidget {
   final ServiceRequestModel request;
@@ -322,6 +323,11 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
                   // Rating Section
                   _buildRatingSection(context, req),
 
+                  const SizedBox(height: 24),
+
+                  // Raise a Complaint
+                  _buildComplaintButton(context, req),
+
                   const SizedBox(height: 80), // Bottom padding for FAB/Button
                 ],
               ),
@@ -633,6 +639,54 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildComplaintButton(BuildContext context, ServiceRequestModel req) {
+    // Serialize the request as a plain Map so RaiseComplaintScreen can use it
+    // as a preSelectedRequest (skipping step 1).
+    final reqMap = <String, dynamic>{
+      'id': req.id,
+      'shopId': req.shopId,
+      'shopName': req.shopName,
+      'deviceType': req.deviceType,
+      'brand': req.brand,
+      'createdAt': req.createdAt != null
+          ? Timestamp.fromDate(req.createdAt!)
+          : null,
+    };
+
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RaiseComplaintScreen(preSelectedRequest: reqMap),
+          ),
+        ),
+        icon: const Icon(
+          Icons.report_problem_outlined,
+          size: 20,
+          color: AppColors.error,
+        ),
+        label: const Text(
+          'Raise a Complaint',
+          style: TextStyle(
+            color: AppColors.error,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.error, width: 1.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          backgroundColor: AppColors.error.withOpacity(0.04),
+        ),
       ),
     );
   }
