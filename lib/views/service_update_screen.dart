@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/constants/app_routes.dart';
 import '../data/models/service_model.dart';
 import 'service_request_detail_screen.dart';
@@ -16,7 +17,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
   final _searchCtrl = TextEditingController();
   String _status = 'All Status';
   late Razorpay _razorpay;
-  ServiceRequestModel? _currentPayingRequest; // Track which request is being paid for
+  ServiceRequestModel?
+      _currentPayingRequest; // Track which request is being paid for
 
   @override
   void initState() {
@@ -43,7 +45,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Error: Document Reference missing')),
+          const SnackBar(content: Text('Error: Document Reference missing')),
         );
       }
     } catch (e) {
@@ -78,7 +80,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
 
   void _showPaymentDialog(ServiceRequestModel req) {
     // Validate amount
-    double? amount = double.tryParse(req.amount.replaceAll(RegExp(r'[^0-9.]'), ''));
+    double? amount =
+        double.tryParse(req.amount.replaceAll(RegExp(r'[^0-9.]'), ''));
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invalid amount for payment')),
@@ -118,8 +121,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                 title: const Text('Pay on Delivery'),
                 subtitle: const Text('Cash / UPI upon service completion'),
                 onTap: () {
-                   Navigator.pop(context);
-                   _updateStatus(req, 'payment_on_delivery');
+                  Navigator.pop(context);
+                  _updateStatus(req, 'payment_on_delivery');
                 },
               ),
             ],
@@ -138,7 +141,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
       'description': 'Payment for ${req.deviceType} Service',
       'prefill': {
         'contact': req.phone,
-        'email': 'user@example.com' // You might want to get actual email if available
+        'email':
+            'user@example.com' // You might want to get actual email if available
       },
       'external': {
         'wallets': ['paytm']
@@ -229,7 +233,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  
+
                   var docs = snapshot.data?.docs ?? [];
                   List<ServiceRequestModel> requests = docs
                       .map((d) => ServiceRequestModel.fromFirestore(d))
@@ -245,9 +249,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   }
 
                   if (_status != 'All Status') {
-                    requests = requests
-                        .where((req) => req.status == _status)
-                        .toList();
+                    requests =
+                        requests.where((req) => req.status == _status).toList();
                   }
 
                   if (requests.isEmpty) {
@@ -255,7 +258,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: requests.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (_, i) {
@@ -333,7 +337,9 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          req.yourName.isEmpty ? 'Unknown User' : req.yourName, // Or Brand/Model if preferred
+                          req.yourName.isEmpty
+                              ? 'Unknown User'
+                              : req.yourName, // Or Brand/Model if preferred
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -346,35 +352,35 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   _StatusPill(status: req.status),
                 ],
               ),
-               
-               // Image Section if exists
-               if (req.images.isNotEmpty) ...[
-                 const SizedBox(height: 12),
-                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                   child: Image.network(
-                     req.images.first,
-                     height: 150,
-                     width: double.infinity,
-                     fit: BoxFit.cover,
-                     errorBuilder: (_,__,___) => const SizedBox.shrink(),
-                   ),
-                 ),
-               ],
 
+              // Image Section if exists
+              if (req.images.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    req.images.first,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 12),
-              
+
               Row(
                 children: [
-                  _labelPill(req.priority, Colors.orange.shade100, Colors.orange.shade900),
-                  if (isWaiting) ...[ 
+                  _labelPill(req.priority, Colors.orange.shade100,
+                      Colors.orange.shade900),
+                  if (isWaiting) ...[
                     // Already shown in status, but maybe we want extra flair?
                     // User prompt: 'Waiting for Confirmation'
                   ]
                 ],
               ),
-              
+
               const SizedBox(height: 12),
               _infoText('Problem: ', req.problem),
               _infoText('Phone: ', req.phone),
@@ -382,7 +388,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
               _infoText('Amount: ', '₹${req.amount}'),
 
               const SizedBox(height: 16),
-              
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -397,11 +403,14 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ServiceRequestDetailScreen(request: req),
+                        builder: (_) =>
+                            ServiceRequestDetailScreen(request: req),
                       ),
                     );
                   },
-                  child: const Text('View Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text('View Details',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
 
@@ -433,7 +442,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   ],
                 ),
               ],
-              
+
               if (isPaymentRequired) ...[
                 const SizedBox(height: 12),
                 SizedBox(
@@ -449,7 +458,67 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                     ),
                     onPressed: () => _showPaymentDialog(req),
                     icon: const Icon(Icons.payment),
-                    label: const Text('Pay Now', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text('Pay Now',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+
+              if (req.status == 'in_progress') ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          "Please drop/courier your product to the service provider",
+                          style: TextStyle(
+                            color: Color(0xFF2F74F9),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('shop_users')
+                            .doc(req.shopId)
+                            .get(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData || !snapshot.data!.exists) {
+                            return const SizedBox();
+                          }
+                          final shopData =
+                              snapshot.data!.data() as Map<String, dynamic>;
+                          final gmapUrl = shopData['gmapUrl'] as String?;
+
+                          if (gmapUrl != null && gmapUrl.isNotEmpty) {
+                            return IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.location_on,
+                                  color: Colors.red, size: 28),
+                              onPressed: () async {
+                                final uri = Uri.parse(gmapUrl);
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri,
+                                      mode: LaunchMode.externalApplication);
+                                }
+                              },
+                            );
+                          }
+                          return const SizedBox();
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -463,16 +532,16 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
   Future<void> _submitRating(ServiceRequestModel req, int rating) async {
     try {
       if (req.shopId.isEmpty) return;
-      
+
       final batch = FirebaseFirestore.instance.batch();
-      
+
       // 1. Add to shop ratings
       final ratingRef = FirebaseFirestore.instance
           .collection('shop_users')
           .doc(req.shopId)
           .collection('ratings')
           .doc(req.id);
-          
+
       batch.set(ratingRef, {
         'rating': rating,
         'userId': FirebaseAuth.instance.currentUser?.uid,
@@ -501,8 +570,11 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
   Widget _labelPill(String text, Color bg, Color fg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Text(text, style: TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 12)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      child: Text(text,
+          style:
+              TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: 12)),
     );
   }
 
@@ -513,7 +585,10 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
         text: TextSpan(
           style: const TextStyle(fontSize: 14, color: Colors.black87),
           children: [
-            TextSpan(text: label, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+            TextSpan(
+                text: label,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.grey[700])),
             TextSpan(text: value),
           ],
         ),
@@ -529,11 +604,11 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
-           if (label == 'All') {
-             _status = 'All Status';
-           } else {
-             _status = statusKey;
-           }
+          if (label == 'All') {
+            _status = 'All Status';
+          } else {
+            _status = statusKey;
+          }
         });
       },
       child: Container(
@@ -569,7 +644,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
       builder: (_) => Container(
         width: double.infinity, // Force full width
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        child: Column( // Use Column to take width
+        child: Column(
+          // Use Column to take width
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -606,42 +682,64 @@ class _StatusPill extends StatelessWidget {
 
   Color _bg() {
     switch (status) {
-      case 'waiting_for_confirmation': return Colors.blue.shade100;
-      case 'in_progress': return Colors.indigo.shade100;
-      case 'declined': return Colors.red.shade100;
-      case 'payment_required': return Colors.orange.shade100;
-      case 'payment_done': return Colors.teal.shade100;
-      case 'payment_on_delivery': return Colors.purple.shade100;
-      
-      case 'Pending': return Colors.orange.shade100;
-      case 'Accepted': return Colors.green.shade100;
-      case 'In Progress': return Colors.indigo.shade100; // Legacy support
-      case 'Completed': return Colors.green.shade100;
-      default: return Colors.grey.shade200;
+      case 'waiting_for_confirmation':
+        return Colors.blue.shade100;
+      case 'in_progress':
+        return Colors.indigo.shade100;
+      case 'declined':
+        return Colors.red.shade100;
+      case 'payment_required':
+        return Colors.orange.shade100;
+      case 'payment_done':
+        return Colors.teal.shade100;
+      case 'payment_on_delivery':
+        return Colors.purple.shade100;
+
+      case 'Pending':
+        return Colors.orange.shade100;
+      case 'Accepted':
+        return Colors.green.shade100;
+      case 'In Progress':
+        return Colors.indigo.shade100; // Legacy support
+      case 'Completed':
+        return Colors.green.shade100;
+      default:
+        return Colors.grey.shade200;
     }
   }
 
   Color _fg() {
     switch (status) {
-      case 'waiting_for_confirmation': return Colors.blue.shade800;
-      case 'in_progress': return Colors.indigo.shade800;
-      case 'declined': return Colors.red.shade800;
-      case 'payment_required': return Colors.deepOrange.shade800;
-      case 'payment_done': return Colors.teal.shade800;
-      case 'payment_on_delivery': return Colors.purple.shade800;
+      case 'waiting_for_confirmation':
+        return Colors.blue.shade800;
+      case 'in_progress':
+        return Colors.indigo.shade800;
+      case 'declined':
+        return Colors.red.shade800;
+      case 'payment_required':
+        return Colors.deepOrange.shade800;
+      case 'payment_done':
+        return Colors.teal.shade800;
+      case 'payment_on_delivery':
+        return Colors.purple.shade800;
 
-      case 'Pending': return Colors.orange.shade800;
-      case 'Accepted': return Colors.green.shade800;
-      case 'In Progress': return Colors.indigo.shade800; // Legacy support
-      case 'Completed': return Colors.green.shade800;
-      default: return Colors.grey.shade800;
+      case 'Pending':
+        return Colors.orange.shade800;
+      case 'Accepted':
+        return Colors.green.shade800;
+      case 'In Progress':
+        return Colors.indigo.shade800; // Legacy support
+      case 'Completed':
+        return Colors.green.shade800;
+      default:
+        return Colors.grey.shade800;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    String display = status == 'payment_done' 
-        ? 'COMPLETED' 
+    String display = status == 'payment_done'
+        ? 'COMPLETED'
         : status.replaceAll('_', ' ').toUpperCase();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -651,23 +749,24 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         display,
-        style: TextStyle(color: _fg(), fontWeight: FontWeight.bold, fontSize: 10),
+        style:
+            TextStyle(color: _fg(), fontWeight: FontWeight.bold, fontSize: 10),
       ),
     );
   }
 }
 
 String _mon(int m) => const [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-][m - 1];
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ][m - 1];

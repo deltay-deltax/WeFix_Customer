@@ -21,11 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
     {'name': 'AC', 'asset': 'assets/icon/icons8-ac-94.png'},
   ];
 
-  final List<String> _filterDistances = ['500m', '1km', '3km', '5km'];
-  String _selectedDistance = '5km'; // Default
+  final List<String> _filterDistances = const ['500m', '1km', '3km', '5km'];
+  static String _selectedDistance = '5km';
+  
+  static String? _selectedCategory;
   Position? _userPosition;
-
-  String? _selectedCategory;
 
   @override
   void initState() {
@@ -161,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: IgnorePointer(
                     child: TextField(
                       decoration: InputDecoration(
-                        hintText: 'Search any Product..',
+                        hintText: 'Search any Shop Nearby...',
                         prefixIcon: const Icon(Icons.search),
                         suffixIcon: const Icon(Icons.mic_none),
                         filled: true,
@@ -438,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Filter by distance if User Position is available
                     List<QueryDocumentSnapshot<Map<String, dynamic>>>
                         filteredDocs = docs;
-                    /* // UNCOMMENT FOR PRODUCTION: Distance Filtering Logic
+                    // UNCOMMENT FOR PRODUCTION: Distance Filtering Logic
                     if (_userPosition != null) {
                       final radiusKm = _getFilterRadiusInKm();
                       filteredDocs = docs.where((doc) {
@@ -470,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           return false; // Error parsing or finding location
                         }
                       }).toList();
-                    } */
+                    } 
 
                     if (filteredDocs.isEmpty) {
                       return const Padding(

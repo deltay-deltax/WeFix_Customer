@@ -85,6 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+
   @override
   void dispose() {
     _searchCtrl.dispose();

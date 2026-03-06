@@ -61,8 +61,8 @@ class ProfileScreen extends StatelessWidget {
                           backgroundColor: Colors.grey[200],
                           backgroundImage:
                               (vm.photoUrl != null && vm.photoUrl!.isNotEmpty)
-                              ? NetworkImage(vm.photoUrl!)
-                              : null,
+                                  ? NetworkImage(vm.photoUrl!)
+                                  : null,
                           child: (vm.photoUrl == null || vm.photoUrl!.isEmpty)
                               ? Icon(
                                   Icons.local_shipping,
@@ -114,10 +114,6 @@ class ProfileScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            if (vm.fullAddress != null) ...[
-                              SizedBox(height: 8),
-                              _AddressDetails(map: vm.fullAddress!),
-                            ],
                             SizedBox(height: 6),
                             GestureDetector(
                               onTap: () async {
@@ -160,7 +156,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                ProfileActionTile(
+                      ProfileActionTile(
                         icon: Icons.engineering,
                         label: "Book a Technician",
                         onTap: () => _showComingSoon(context),
@@ -265,7 +261,43 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 15),
-                // Removed 'Track Your Orders' card
+                // Address Section
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 18),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Address Details",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                        ),
+                      ),
+                      const SizedBox.shrink(),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 12),
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 18),
+                  padding: EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: vm.fullAddress != null
+                      ? _AddressDetails(map: vm.fullAddress!)
+                      : Center(
+                          child: Text(
+                            "No address found",
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                ),
                 SizedBox(height: 25),
                 // Favorite Shops header
                 Padding(
@@ -452,8 +484,7 @@ class _FavoriteShopsGrid extends StatelessWidget {
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        final favIds =
-            (userSnap.data?.data()?['favoriteShops'] as List?)
+        final favIds = (userSnap.data?.data()?['favoriteShops'] as List?)
                 ?.cast<String>() ??
             const [];
         if (favIds.isEmpty) {
@@ -494,12 +525,11 @@ class _FavoriteShopsGrid extends StatelessWidget {
               itemCount: docs.length,
               itemBuilder: (_, i) {
                 final d = docs[i].data();
-                final name =
-                    (d['companyLegalName'] ??
-                            d['companyLegalname'] ??
-                            d['companylegalName'] ??
-                            'Shop')
-                        .toString();
+                final name = (d['companyLegalName'] ??
+                        d['companyLegalname'] ??
+                        d['companylegalName'] ??
+                        'Shop')
+                    .toString();
                 final image = d['imageUrl'] as String?;
                 return Card(
                   shape: RoundedRectangleBorder(
@@ -508,12 +538,13 @@ class _FavoriteShopsGrid extends StatelessWidget {
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
                     onTap: () {
-                      d['shopId'] = docs[i].id; // Ensure shopId is present for ProductDetailsScreen
+                      d['shopId'] = docs[i]
+                          .id; // Ensure shopId is present for ProductDetailsScreen
                       Navigator.pushNamed(
-                        context, 
-                        AppRoutes.productDetails,  // Ensure consistent route name
-                        arguments: d 
-                      );
+                          context,
+                          AppRoutes
+                              .productDetails, // Ensure consistent route name
+                          arguments: d);
                     },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -550,9 +581,9 @@ class _FavoriteShopsGrid extends StatelessWidget {
   }
 
   Widget _ph() => Container(
-    color: Colors.grey[300],
-    child: const Center(child: Icon(Icons.image_not_supported)),
-  );
+        color: Colors.grey[300],
+        child: const Center(child: Icon(Icons.image_not_supported)),
+      );
 }
 
 class _AddressDetails extends StatelessWidget {
