@@ -1,22 +1,53 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ShieldCheck } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        // Hardcoded credentials per instructions
-        if (email === 'admin@wefix.com' && password === 'admin123') {
-            localStorage.setItem('wefix_admin_auth', 'true');
-            navigate('/');
-        } else {
-            setError('Invalid email or password. Hint: admin@wefix.com / admin123');
+        setLoading(true);
+
+        try {
+            const adminQuery = query(
+                collection(db, 'admin'),
+                where('email', '==', email)
+            );
+            const querySnapshot = await getDocs(adminQuery);
+
+            if (querySnapshot.empty) {
+                setError('Invalid admin credentials.');
+                setLoading(false);
+                return;
+            }
+
+            let isValid = false;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.pass === password) {
+                    isValid = true;
+                }
+            });
+
+            if (isValid) {
+                localStorage.setItem('wefix_admin_auth', 'true');
+                navigate('/');
+            } else {
+                setError('Invalid admin credentials.');
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            setError('Error connecting to database. Check your network.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -96,8 +127,8 @@ const Login = () => {
                         />
                     </div>
 
-                    <button type="submit" className="btn-primary" style={{ width: '100%', padding: '0.875rem', fontSize: '1rem', marginTop: '0.5rem' }}>
-                        Sign In
+                    <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', padding: '0.875rem', fontSize: '1rem', marginTop: '0.5rem', opacity: loading ? 0.7 : 1 }}>
+                        {loading ? 'Authenticating...' : 'Sign In'}
                     </button>
                 </form>
             </div>
