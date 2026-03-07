@@ -644,6 +644,12 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
   }
 
   Widget _buildComplaintButton(BuildContext context, ServiceRequestModel req) {
+    // Only show if strictly completed or payment_done
+    final s = req.status.toLowerCase();
+    final isCompleted = s == 'completed' || s == 'payment_done';
+        
+    if (!isCompleted) return const SizedBox.shrink();
+
     // Serialize the request as a plain Map so RaiseComplaintScreen can use it
     // as a preSelectedRequest (skipping step 1).
     final reqMap = <String, dynamic>{
@@ -704,6 +710,7 @@ class _StatusBadge extends StatelessWidget {
 
     switch (status) {
       case 'in_progress':
+      case 'in_service':
       case 'In Progress':
         bg = AppColors.chipInProgressBg;
         text = AppColors.chipInProgress;
@@ -730,6 +737,10 @@ class _StatusBadge extends StatelessWidget {
         break;
     }
 
+    String display = status.replaceAll('_', ' ').toUpperCase();
+    if (status == 'payment_done') display = 'COMPLETED';
+    if (status == 'in_service') display = 'IN PROGRESS';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -737,7 +748,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status == 'payment_done' ? 'COMPLETED' : status.replaceAll('_', ' ').toUpperCase(),
+        display,
         style: TextStyle(
           color: text,
           fontWeight: FontWeight.bold,

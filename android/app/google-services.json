@@ -28,7 +28,44 @@
       ],
       "api_key": [
         {
-          "current_key": "your_key_gmap"
+          "current_key": "AIzaSyC36qBqY62HKWycpgWod5HNe4uOX3x5ZZ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:670452211833:android:6fad9cfb01887c3e55f4a8",
+        "android_client_info": {
+          "package_name": "com.wefix_shop"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "670452211833-9utiqj2f164ao18upr8oh1cqaagon084.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wefix_shop",
+            "certificate_hash": "ad4b551731ed143a514c46fbf68c46adcd0ecc0b"
+          }
+        },
+        {
+          "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC36qBqY62HKWycpgWod5HNe4uOX3x5ZZ0"
         }
       ],
       "services": {

@@ -160,70 +160,71 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.grey[100],
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 12, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Service Requests',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: _openFilter,
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 16, top: 6, bottom: 20),
-              child: Text(
-                'Manage and process all service requests',
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _searchCtrl,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: 'Search by customer, status...',
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 12, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Service Requests',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.filter_list),
+                      onPressed: _openFilter,
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            // Filter Pills Row (Mockup style)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _filterChip('New', 'waiting_for_confirmation'),
-                  const SizedBox(width: 8),
-                  _filterChip('In Progress', 'in_progress'),
-                  const SizedBox(width: 8),
-                  _filterChip('All', 'All Status'),
-                ],
+              Padding(
+                padding: const EdgeInsets.only(left: 16, top: 6, bottom: 20),
+                child: Text(
+                  'Manage and process all service requests',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: 'Search by customer, status...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Filter Pills Row (Mockup style)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    _filterChip('New', 'waiting_for_confirmation'),
+                    const SizedBox(width: 8),
+                    _filterChip('In Progress', 'in_progress'),
+                    const SizedBox(width: 8),
+                    _filterChip('All', 'All Status'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collectionGroup('requests')
                     .where('userId', isEqualTo: uid)
@@ -258,6 +259,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   }
 
                   return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: requests.length,
@@ -269,8 +272,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -489,12 +492,12 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                       const SizedBox(width: 8),
                       FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance
-                            .collection('shop_users')
+                            .collection('registered_shop_users')
                             .doc(req.shopId)
                             .get(),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData || !snapshot.data!.exists) {
-                            return const SizedBox();
+                            return const SizedBox.shrink();
                           }
                           final shopData =
                               snapshot.data!.data() as Map<String, dynamic>;
@@ -514,8 +517,10 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                                 }
                               },
                             );
+                          } else {
+                            // Render a disabled icon so the user knows there is no location provided
+                            return const Icon(Icons.location_off, color: Colors.grey, size: 24);
                           }
-                          return const SizedBox();
                         },
                       ),
                     ],
@@ -685,6 +690,7 @@ class _StatusPill extends StatelessWidget {
       case 'waiting_for_confirmation':
         return Colors.blue.shade100;
       case 'in_progress':
+      case 'in_service':
         return Colors.indigo.shade100;
       case 'declined':
         return Colors.red.shade100;
@@ -713,6 +719,7 @@ class _StatusPill extends StatelessWidget {
       case 'waiting_for_confirmation':
         return Colors.blue.shade800;
       case 'in_progress':
+      case 'in_service':
         return Colors.indigo.shade800;
       case 'declined':
         return Colors.red.shade800;
@@ -738,9 +745,10 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String display = status == 'payment_done'
-        ? 'COMPLETED'
-        : status.replaceAll('_', ' ').toUpperCase();
+    String display = status.replaceAll('_', ' ').toUpperCase();
+    if (status == 'payment_done') display = 'COMPLETED';
+    if (status == 'in_service') display = 'IN PROGRESS';
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(

@@ -241,7 +241,11 @@ class _WarrantyScreenState extends State<WarrantyScreen> {
       firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 1),
     );
-    if (res != null) setState(() => _purchaseDate = res);
+    if (res != null) {
+      // Set to 12:00 PM noon to safely avoid timezone offset crossing midnight backwards
+      final safeDate = DateTime(res.year, res.month, res.day, 12, 0, 0);
+      setState(() => _purchaseDate = safeDate);
+    }
   }
 
   Future<void> _pickReceipt() async {
@@ -287,7 +291,14 @@ class _WarrantyScreenState extends State<WarrantyScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Warranty saved')));
+      
       _formKey.currentState?.reset();
+      _modelName.clear();
+      _modelNumber.clear();
+      _company.clear();
+      _email.clear();
+      _phone.clear();
+
       setState(() {
         _purchaseDate = null;
         _receipt = null;

@@ -38,9 +38,32 @@ class NotificationsScreen extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 19, vertical: 9),
                 ),
-                ...vm.notifications
-                    .map((notif) => NotificationTile(notif: notif))
-                    .toList(),
+                if (vm.isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 100),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (vm.notifications.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 100),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.notifications_off_outlined, size: 60, color: Colors.grey.shade400),
+                          const SizedBox(height: 16),
+                          Text(
+                            "No notifications yet",
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                          )
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...vm.notifications
+                      .map((notif) => NotificationTile(notif: notif))
+                      .toList(),
               ],
             ),
           ),

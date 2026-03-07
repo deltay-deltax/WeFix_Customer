@@ -218,6 +218,19 @@ class ProfileScreen extends StatelessWidget {
                         },
                       ),
                       ProfileActionTile(
+                        icon: Icons.location_on_outlined,
+                        label: "My Address",
+                        onTap: () {
+                          if (vm.fullAddress != null) {
+                            _showAddressBottomSheet(context, vm.fullAddress!);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('No address found')),
+                            );
+                          }
+                        },
+                      ),
+                      ProfileActionTile(
                         icon: Icons.assignment_late_outlined,
                         label: "My Complaints",
                         onTap: () {
@@ -261,44 +274,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 15),
-                // Address Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Address Details",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
-                        ),
-                      ),
-                      const SizedBox.shrink(),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 12),
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 18),
-                  padding: EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: vm.fullAddress != null
-                      ? _AddressDetails(map: vm.fullAddress!)
-                      : Center(
-                          child: Text(
-                            "No address found",
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                ),
-                SizedBox(height: 25),
+
                 // Favorite Shops header
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 18),
@@ -584,6 +560,69 @@ class _FavoriteShopsGrid extends StatelessWidget {
         color: Colors.grey[300],
         child: const Center(child: Icon(Icons.image_not_supported)),
       );
+}
+
+void _showAddressBottomSheet(BuildContext context, Map<String, dynamic> map) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.location_on, color: Colors.blue),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'My Address',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _AddressDetails(map: map),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Close',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _AddressDetails extends StatelessWidget {

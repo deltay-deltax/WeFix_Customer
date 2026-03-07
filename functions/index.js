@@ -24,15 +24,24 @@ const REMINDER_DAYS = [30, 15, 3, 1];
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function buildTransporter() {
-    const cfg = functions.config().email;
+    const emailConfig = functions.config().email;
+    if (!emailConfig || !emailConfig.user || !emailConfig.password) {
+        throw new Error(
+            "Missing 'email.user' or 'email.password' in functions.config(). Please run `firebase functions:config:set email.user=... email.password=...` and redeploy.",
+        );
+    }
     return nodemailer.createTransport({
         service: "gmail",
-        auth: { user: cfg.user, pass: cfg.password },
+        auth: { user: emailConfig.user, pass: emailConfig.password },
     });
 }
 
 function getSenderAddress() {
-    return `"WeFix" <${functions.config().email.user}>`;
+    const emailConfig = functions.config().email;
+    if (!emailConfig || !emailConfig.user) {
+        return `"WeFix" <noreply@wefix.com>`;
+    }
+    return `"WeFix" <${emailConfig.user}>`;
 }
 
 /** Parse "1 Year", "3 Months", etc. → number of months  */
@@ -53,14 +62,15 @@ function parseValidityMonths(validity) {
 /** Confirmation email sent right after warranty is saved */
 function buildConfirmationEmail(data) {
     const purchaseDate = data.purchaseDate?.toDate
-        ? moment(data.purchaseDate.toDate()).format("MMMM D, YYYY")
+        ? moment.utc(data.purchaseDate.toDate()).format("MMMM D, YYYY")
         : "N/A";
     const months = parseValidityMonths(data.warrantyValidity);
     const expiresOn =
         months === 9999
             ? "Never (Lifetime)"
             : data.purchaseDate?.toDate
-                ? moment(data.purchaseDate.toDate())
+                ? moment
+                    .utc(data.purchaseDate.toDate())
                     .add(months, "months")
                     .format("MMMM D, YYYY")
                 : "N/A";
@@ -99,12 +109,11 @@ function buildConfirmationEmail(data) {
 /** Reminder email sent X days before expiry */
 function buildReminderEmail(data, daysRemaining, expiresOnFormatted) {
     const timeLabel =
-        { 30: "30 days", 15: "15 days", 3: "3 days", 1: "1 day" }[
-        daysRemaining
-        ] ?? `${daysRemaining} days`;
+        { 30: "30 days", 15: "15 days", 3: "3 days", 1: "1 day" }[daysRemaining] ??
+        `${daysRemaining} days`;
     const urgencyColor = daysRemaining <= 3 ? "#dc2626" : "#d97706";
     const purchaseDate = data.purchaseDate?.toDate
-        ? moment(data.purchaseDate.toDate()).format("MMMM D, YYYY")
+        ? moment.utc(data.purchaseDate.toDate()).format("MMMM D, YYYY")
         : "N/A";
 
     return {
@@ -112,14 +121,14 @@ function buildReminderEmail(data, daysRemaining, expiresOnFormatted) {
         html: `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:10px;">
   <h2 style="color:#1a56db;text-align:center;margin-bottom:4px;">WeFix</h2>
-  <h3 style="text-align:center;margin-top:0;color:#374151;">Warranty Expiration Notice</h3>
+  <h3 style="text-align:center;margin-top:0;color:#374151;">Warranty Expiration Alert ⚠️</h3>
 
-  <p style="color:#374151;">Dear WeFix User,</p>
-  <p style="color:#374151;">This is a friendly reminder that your warranty is expiring soon:</p>
+  <p style="color:#374151;">Hi there,</p>
+  <p style="color:#374151;">This is a friendly reminder that your warranty will expire in <strong>${timeLabel}</strong>. Here are the details:</p>
 
   <div style="background:#fff7ed;border-left:4px solid ${urgencyColor};border-radius:6px;padding:16px;margin:20px 0;">
     <p style="margin:0;font-size:16px;font-weight:bold;color:${urgencyColor};">
-      ⏰ Expires in <span style="font-size:20px;">${timeLabel}</span> — ${expiresOnFormatted}
+      ⏰ Expires on — ${expiresOnFormatted}
     </p>
   </div>
 
@@ -128,7 +137,7 @@ function buildReminderEmail(data, daysRemaining, expiresOnFormatted) {
     <p style="margin:6px 0;"><strong>Model Number:</strong> ${data.modelNumber || "—"}</p>
     <p style="margin:6px 0;"><strong>Company:</strong> ${data.company || "—"}</p>
     <p style="margin:6px 0;"><strong>Purchase Date:</strong> ${purchaseDate}</p>
-    <p style="margin:6px 0;"><strong>Warranty Validity:</strong> ${data.warrantyValidity || "1 Year"}</p>
+    <p style="margin:6px 0;"><strong>Warranty Period:</strong> ${data.warrantyValidity || "1 Year"}</p>
   </div>
 
   <p style="color:#374151;">If you need to extend your warranty or arrange for service,
@@ -153,10 +162,12 @@ exports.onWarrantyCreated = functions.firestore
             return;
         }
 
-        const transporter = buildTransporter();
-        const { subject, html } = buildConfirmationEmail(data);
-
         try {
+            functions.logger.log(`Building transporter for email...`);
+            const transporter = buildTransporter();
+            const { subject, html } = buildConfirmationEmail(data);
+
+            functions.logger.log(`Attempting to send confirmation email to ${email}`);
             await transporter.sendMail({
                 from: getSenderAddress(),
                 to: email,
@@ -208,7 +219,7 @@ exports.checkWarrantyExpiry = functions.pubsub
                 const sentIntervals = data.notificationsSent ?? [];
                 if (sentIntervals.includes(daysUntilExpiry)) {
                     functions.logger.log(
-                        `Already sent ${daysUntilExpiry}d reminder for ${wDoc.id}`
+                        `Already sent ${daysUntilExpiry}d reminder for ${wDoc.id}`,
                     );
                     continue;
                 }
@@ -217,7 +228,7 @@ exports.checkWarrantyExpiry = functions.pubsub
                 const { subject, html } = buildReminderEmail(
                     data,
                     daysUntilExpiry,
-                    expiresOnFormatted
+                    expiresOnFormatted,
                 );
 
                 try {
@@ -228,24 +239,172 @@ exports.checkWarrantyExpiry = functions.pubsub
                         html,
                     });
                     functions.logger.log(
-                        `Reminder (${daysUntilExpiry}d) sent to ${email} for ${wDoc.id}`
+                        `Reminder (${daysUntilExpiry}d) sent to ${email} for ${wDoc.id}`,
                     );
 
                     // Mark interval as sent so we don't re-email
                     await wDoc.ref.update({
-                        notificationsSent: admin.firestore.FieldValue.arrayUnion(
-                            daysUntilExpiry
-                        ),
+                        notificationsSent:
+                            admin.firestore.FieldValue.arrayUnion(daysUntilExpiry),
                     });
                 } catch (err) {
                     functions.logger.error(
                         `Reminder email failed for ${wDoc.id} / ${email}:`,
-                        err
+                        err,
                     );
                 }
             }
         }
 
         functions.logger.log("Daily warranty expiry check complete.");
+        return null;
+    });
+
+// ── 3. Firestore Trigger: Service Request Status Updates → Push Notifications ──
+exports.onRequestStatusChanged = functions.firestore
+    .document("shop_users/{shopId}/requests/{requestId}")
+    .onWrite(async (change, context) => {
+        const { shopId, requestId } = context.params;
+
+        // Document deleted
+        if (!change.after.exists) return null;
+
+        const dataBefore = change.before.data() || {};
+        const dataAfter = change.after.data();
+
+        const statusBefore = dataBefore.status;
+        const statusAfter = dataAfter.status;
+        const userId = dataAfter.userId;
+
+        // We only care if the status changed (or is new)
+        if (statusBefore === statusAfter) return null;
+        if (!userId) {
+            functions.logger.warn(`No userId found for request ${requestId}`);
+            return null;
+        }
+
+        // Fetch User's FCM Token
+        const userDoc = await admin
+            .firestore()
+            .collection("users")
+            .doc(userId)
+            .get();
+        if (!userDoc.exists) return null;
+
+        const fcmToken = userDoc.data().fcmToken;
+        if (!fcmToken) {
+            functions.logger.log(`User ${userId} has no fcmToken registered.`);
+            return null;
+        }
+
+        // Fetch Shop details for shop name
+        const shopDoc = await admin
+            .firestore()
+            .collection("shop_users")
+            .doc(shopId)
+            .get();
+        const shopName = shopDoc.exists
+            ? shopDoc.data().companyLegalName ||
+            shopDoc.data().companyLegalname ||
+            shopDoc.data().companylegalName ||
+            "the shop"
+            : "the shop";
+
+        // Map status to Title and Body
+        let title = "WeFix Update";
+        let body = "";
+
+        switch (statusAfter) {
+            case "pending":
+            case "Pending":
+                title = "Request Sent";
+                body = `Your request has been sent to ${shopName}.`;
+                break;
+            case "waiting_for_confirmation":
+                title = "Estimate Received";
+                body = `The ${shopName} has estimated a budget of ₹${dataAfter.amount || "0"} for your service. Please accept or decline to move further.`;
+                break;
+            case "in_progress":
+                title = "Request Accepted";
+                body = `Please drop off or courier the product to the shop location.`;
+                break;
+            case "in_service":
+                title = "Product Received";
+                body = `Your product was received by the shop keeper.`;
+                break;
+            case "payment_required":
+                title = "Payment Required";
+                body = `Your service is completed! Please make the payment of ₹${dataAfter.amount || ""} to get your device back.`;
+                break;
+            case "completed":
+                title = "Service Completed";
+                body = `Payment done! Your service is completely finished. Please rate the service in the app.`;
+                break;
+            case "declined":
+                title = "Request Declined";
+                body = `Unfortunately, the shop declined your service request.`;
+                break;
+            default:
+                // No notification for other generic statuses
+                return null;
+        }
+
+        // Send Push Notification
+        const message = {
+            token: fcmToken,
+            notification: {
+                title: title,
+                body: body,
+            },
+            android: {
+                priority: "high",
+                notification: {
+                    sound: "default",
+                    clickAction: "FLUTTER_NOTIFICATION_CLICK",
+                },
+            },
+            apns: {
+                payload: {
+                    aps: { sound: "default" },
+                },
+            },
+            data: {
+                requestId: requestId,
+                shopId: shopId,
+            },
+        };
+
+        try {
+            // Send FCM
+            const response = await admin.messaging().send(message);
+            functions.logger.log(
+                `Push sent successfully for ${requestId} (${statusAfter}):`,
+                response,
+            );
+
+            // Save to User's Notifications Subcollection
+            let type = "info";
+            if (statusAfter === "payment_required" || statusAfter === "waiting_for_confirmation") type = "warning";
+            if (statusAfter === "payment_done" || statusAfter === "completed") type = "success";
+            if (statusAfter === "declined") type = "error";
+
+            await admin.firestore()
+                .collection("users")
+                .doc(userId)
+                .collection("notifications")
+                .add({
+                    title: title,
+                    body: body,
+                    type: type,
+                    requestId: requestId,
+                    shopId: shopId,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    isRead: false,
+                });
+
+        } catch (error) {
+            functions.logger.error(`Error sending push/saving notification for ${requestId}:`, error);
+        }
+
         return null;
     });

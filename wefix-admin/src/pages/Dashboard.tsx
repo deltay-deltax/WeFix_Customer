@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, doc, updateDoc, QuerySnapshot, QueryDocumentSnapshot, FirestoreError } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import ShopDetailsModal from '../components/ShopDetailsModal';
-import { LogOut, Users, Search, Activity } from 'lucide-react';
+import BannersManager from '../components/BannersManager';
+import { LogOut, Users, Search, Activity, Image as ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export interface Shop {
@@ -26,6 +27,7 @@ const Dashboard = () => {
     const [shops, setShops] = useState<Shop[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+    const [activeTab, setActiveTab] = useState<'shops' | 'banners'>('shops');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -95,21 +97,42 @@ const Dashboard = () => {
                     <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>WeFix Admin</h2>
                 </div>
 
-                <nav style={{ flex: 1 }}>
-                    <button style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.75rem 1rem',
-                        background: '#eff6ff',
-                        color: 'var(--primary)',
-                        borderRadius: 'var(--radius)',
-                        fontWeight: '600',
-                        fontSize: '0.95rem'
-                    }}>
+                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <button
+                        onClick={() => setActiveTab('shops')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: activeTab === 'shops' ? '#eff6ff' : 'transparent',
+                            color: activeTab === 'shops' ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderRadius: 'var(--radius)',
+                            fontWeight: '600',
+                            fontSize: '0.95rem'
+                        }}
+                    >
                         <Users size={20} />
                         Shop Management
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('banners')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: activeTab === 'banners' ? '#eff6ff' : 'transparent',
+                            color: activeTab === 'banners' ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderRadius: 'var(--radius)',
+                            fontWeight: '600',
+                            fontSize: '0.95rem'
+                        }}
+                    >
+                        <ImageIcon size={20} />
+                        Banners
                     </button>
                 </nav>
 
@@ -135,138 +158,144 @@ const Dashboard = () => {
 
             {/* Main Content */}
             <main className="main-content">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <div>
-                        <h1 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>Shop Management</h1>
-                        <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>View and verify registered shops on WeFix.</p>
-                    </div>
+                {activeTab === 'shops' ? (
+                    <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <div>
+                                <h1 style={{ fontSize: '1.875rem', fontWeight: '700', color: 'var(--text-primary)' }}>Shop Management</h1>
+                                <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>View and verify registered shops on WeFix.</p>
+                            </div>
 
-                    <div style={{ position: 'relative', width: '300px' }}>
-                        <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} size={20} />
-                        <input
-                            type="text"
-                            placeholder="Search shops..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '0.75rem 1rem 0.75rem 2.875rem',
-                                borderRadius: '999px',
-                                border: '1px solid var(--border)',
-                                outline: 'none',
-                                boxShadow: 'var(--shadow-sm)',
-                                transition: 'border-color 0.2s, box-shadow 0.2s',
-                            }}
-                            onFocus={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--primary)';
-                                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                            }}
-                            onBlur={(e) => {
-                                e.currentTarget.style.borderColor = 'var(--border)';
-                                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                            }}
-                        />
-                    </div>
-                </div>
+                            <div style={{ position: 'relative', width: '300px' }}>
+                                <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Search shops..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem 0.75rem 2.875rem',
+                                        borderRadius: '999px',
+                                        border: '1px solid var(--border)',
+                                        outline: 'none',
+                                        boxShadow: 'var(--shadow-sm)',
+                                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                                    }}
+                                    onFocus={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--primary)';
+                                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--border)';
+                                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                    }}
+                                />
+                            </div>
+                        </div>
 
-                {/* Status Overview Cards */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                    gap: '1.5rem',
-                    marginBottom: '2rem'
-                }}>
-                    <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius)', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Total Shops</p>
-                        <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)', marginTop: '0.5rem' }}>{shops.length}</h3>
-                    </div>
-                    <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius)', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Active Shops</p>
-                        <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--secondary)', marginTop: '0.5rem' }}>{shops.filter(s => s.active).length}</h3>
-                    </div>
-                    <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius)', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Pending Verification</p>
-                        <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--warning)', marginTop: '0.5rem' }}>{shops.filter(s => !s.active).length}</h3>
-                    </div>
-                </div>
+                        {/* Status Overview Cards */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                            gap: '1.5rem',
+                            marginBottom: '2rem'
+                        }}>
+                            <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius)', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Total Shops</p>
+                                <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)', marginTop: '0.5rem' }}>{shops.length}</h3>
+                            </div>
+                            <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius)', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Active Shops</p>
+                                <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--secondary)', marginTop: '0.5rem' }}>{shops.filter(s => s.active).length}</h3>
+                            </div>
+                            <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius)', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: '500' }}>Pending Verification</p>
+                                <h3 style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--warning)', marginTop: '0.5rem' }}>{shops.filter(s => !s.active).length}</h3>
+                            </div>
+                        </div>
 
-                <div className="data-table-container animate-fade-in">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Shop Info</th>
-                                <th>Location</th>
-                                <th>Category</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredShops.map(shop => (
-                                <tr key={shop.id}>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <img
-                                                src={shop.primaryPhoto || 'https://via.placeholder.com/40'}
-                                                alt={shop.companyLegalName}
-                                                style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }}
-                                            />
-                                            <div>
-                                                <div style={{ fontWeight: '600' }}>{shop.companyLegalName}</div>
-                                                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{shop.phone}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ fontSize: '0.875rem' }}>
-                                            {shop.address?.city}, {shop.address?.state}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span style={{
-                                            background: '#f1f5f9',
-                                            padding: '0.25rem 0.5rem',
-                                            borderRadius: '0.5rem',
-                                            fontSize: '0.875rem',
-                                            color: 'var(--text-secondary)',
-                                            display: 'inline-block',
-                                            maxWidth: '180px',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis'
-                                        }}>
-                                            {shop.shopCategory}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className={`badge ${shop.active ? 'badge-active' : 'badge-inactive'}`}>
-                                            {shop.active ? 'Active' : 'Pending'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <button
-                                                className="btn-secondary"
-                                                style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                                                onClick={() => setSelectedShop(shop)}
-                                            >
-                                                View Details
-                                            </button>
+                        <div className="data-table-container animate-fade-in">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Shop Info</th>
+                                        <th>Location</th>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredShops.map(shop => (
+                                        <tr key={shop.id}>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    <img
+                                                        src={shop.primaryPhoto || 'https://via.placeholder.com/40'}
+                                                        alt={shop.companyLegalName}
+                                                        style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }}
+                                                    />
+                                                    <div>
+                                                        <div style={{ fontWeight: '600' }}>{shop.companyLegalName}</div>
+                                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{shop.phone}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div style={{ fontSize: '0.875rem' }}>
+                                                    {shop.address?.city}, {shop.address?.state}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    background: '#f1f5f9',
+                                                    padding: '0.25rem 0.5rem',
+                                                    borderRadius: '0.5rem',
+                                                    fontSize: '0.875rem',
+                                                    color: 'var(--text-secondary)',
+                                                    display: 'inline-block',
+                                                    maxWidth: '180px',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis'
+                                                }}>
+                                                    {shop.shopCategory}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${shop.active ? 'badge-active' : 'badge-inactive'}`}>
+                                                    {shop.active ? 'Active' : 'Pending'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button
+                                                        className="btn-secondary"
+                                                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                                                        onClick={() => setSelectedShop(shop)}
+                                                    >
+                                                        View Details
+                                                    </button>
 
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredShops.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                                        No shops found matching your criteria.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredShops.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                                                No shops found matching your criteria.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                ) : (
+                    <BannersManager />
+                )}
             </main>
 
             {/* Details Modal */}
