@@ -62,7 +62,7 @@ class NotificationsScreen extends StatelessWidget {
                   )
                 else
                   ...vm.notifications
-                      .map((notif) => NotificationTile(notif: notif))
+                      .map((notif) => NotificationTile(notif: notif, vm: vm))
                       .toList(),
               ],
             ),

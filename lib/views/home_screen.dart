@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart'; // Import Geolocator
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:math' show cos, sqrt, asin;
 import '../core/constants/app_routes.dart';
 import '../core/constants/app_colors.dart';
@@ -14,20 +15,39 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // 'subcategoryKey' must exactly match the subcategory strings stored in Firestore.
+  // '__other__' is a sentinel: shows shops whose subcategories don't match any mapped key.
+  // Empty asset means the builder renders a Flutter icon instead of an image.
   final List<Map<String, String>> _categories = const [
-    {'name': 'Laptop', 'asset': 'assets/icon/laptop.png'},
-    {'name': 'Phone', 'asset': 'assets/icon/icons8-mobile-phone-50.png'},
-    {'name': 'Fridge', 'asset': 'assets/icon/icons8-fridge-48.png'},
-    {'name': 'TV', 'asset': 'assets/icon/icons8-tv-48.png'},
-    {'name': 'Washer', 'asset': 'assets/icon/icons8-washing-machine-48.png'},
-    {'name': 'Board', 'asset': 'assets/icon/icons8-motherboard-40.png'},
-    {'name': 'AC', 'asset': 'assets/icon/icons8-ac-94.png'},
+    {'name': 'Laptop',  'asset': 'assets/icon/laptop.png',                          'subcategoryKey': 'Laptop'},
+    {'name': 'Phone',   'asset': 'assets/icon/icons8-mobile-phone-50.png',           'subcategoryKey': 'Phone'},
+    {'name': 'Fridge',  'asset': 'assets/icon/icons8-fridge-48.png',                'subcategoryKey': 'Refrigerator (Fridge)'},
+    {'name': 'TV',      'asset': 'assets/icon/icons8-tv-48.png',                    'subcategoryKey': 'Smart TV / LED TV'},
+    {'name': 'Washer',  'asset': 'assets/icon/icons8-washing-machine-48.png',       'subcategoryKey': 'Washing Machine'},
+    {'name': 'Board',   'asset': 'assets/icon/icons8-motherboard-40.png',           'subcategoryKey': 'Motherboard'},
+    {'name': 'AC',      'asset': 'assets/icon/icons8-ac-94.png',                    'subcategoryKey': 'Air Conditioner (AC)'},
+    {'name': 'Other',   'asset': '',                                                 'subcategoryKey': '__other__'},
   ];
+
+  // All subcategory keys that are explicitly mapped to an icon.
+  // Used by the 'Other' filter to exclude known categories.
+  static const Set<String> _kMappedSubcategoryKeys = {
+    'Laptop',
+    'Phone',
+    'Refrigerator (Fridge)',
+    'Smart TV / LED TV',
+    'Washing Machine',
+    'Motherboard',
+    'Air Conditioner (AC)',
+  };
 
   final List<String> _filterDistances = const ['500m', '1km', '3km', '5km'];
   static String _selectedDistance = '5km';
   
+  // Holds the display name of the selected category icon (used for UI highlight).
   static String? _selectedCategory;
+  // Holds the exact Firestore subcategory key for the selected category.
+  static String? _selectedSubcategoryKey;
   static Position? _userPosition;
 
   // Pagination Variables
@@ -81,8 +101,12 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection('registered_shop_users');
 
-      if (_selectedCategory != null) {
-        query = query.where('subcategories', arrayContains: _selectedCategory);
+      // For 'Other', fetch all shops (client-side filtering excludes known keys).
+      // For a specific subcategory, filter in Firestore directly.
+      if (_selectedSubcategoryKey != null &&
+          _selectedSubcategoryKey!.isNotEmpty &&
+          _selectedSubcategoryKey != '__other__') {
+        query = query.where('subcategories', arrayContains: _selectedSubcategoryKey);
       }
 
       // Add ordering if you have a reliable field to order by, 
@@ -342,7 +366,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     return InkWell(
                       onTap: () {
                         setState(() {
-                          _selectedCategory = selected ? null : (cat['name'] as String);
+                          if (selected) {
+                            _selectedCategory = null;
+                            _selectedSubcategoryKey = null;
+                          } else {
+                            _selectedCategory = cat['name'] as String;
+                            _selectedSubcategoryKey = cat['subcategoryKey'] as String?;
+                          }
                         });
                         _fetchShops(); // Refresh list on category change
                       },
@@ -362,8 +392,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       .withOpacity(0.1), // Or grey/blue tint
                               // Screenshot shows a light background for icons
                             ),
-                            child:
-                                Image.asset(cat['asset']!, fit: BoxFit.contain),
+                            child: cat['asset']!.isNotEmpty
+                                ? Image.asset(cat['asset']!, fit: BoxFit.contain)
+                                : const Icon(Icons.more_horiz, size: 28, color: Colors.grey),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -415,18 +446,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           final data =
                               docs[index].data() as Map<String, dynamic>;
                           final imageUrl = data['imageUrl'] as String?;
-                          return Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              color: Colors.grey.shade200,
-                              image: imageUrl != null && imageUrl.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(imageUrl),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            clipBehavior: Clip.antiAlias,
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: imageUrl != null && imageUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: 200,
+                                    placeholder: (_, __) => Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                          child: CircularProgressIndicator(strokeWidth: 2)),
+                                    ),
+                                    errorWidget: (_, __, ___) => Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                          child: Icon(Icons.broken_image, color: Colors.grey)),
+                                    ),
+                                  )
+                                : Container(color: Colors.grey.shade200),
                           );
                         },
                       ),
@@ -508,6 +547,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
                       }).toList();
                     } 
+
+                    // 'Other' filter: keep shops with NO overlap with mapped subcategory keys.
+                    if (_selectedSubcategoryKey == '__other__') {
+                      filteredDocs = filteredDocs.where((doc) {
+                        final subs = (doc.data()['subcategories'] as List<dynamic>? ?? [])
+                            .map((e) => e.toString())
+                            .toSet();
+                        return subs.intersection(_kMappedSubcategoryKeys).isEmpty;
+                      }).toList();
+                    }
 
                     if (filteredDocs.isEmpty) {
                       return const Padding(

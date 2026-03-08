@@ -215,11 +215,12 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    _filterChip('New', 'waiting_for_confirmation'),
+                        _filterChip('All', 'All Status'),
                     const SizedBox(width: 8),
-                    _filterChip('In Progress', 'in_progress'),
+                    
+                     _filterChip('New', 'waiting_for_confirmation'),
                     const SizedBox(width: 8),
-                    _filterChip('All', 'All Status'),
+                    _filterChip('In Progress', 'in_progress'),  
                   ],
                 ),
               ),
@@ -339,16 +340,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          req.yourName.isEmpty
-                              ? 'Unknown User'
-                              : req.yourName, // Or Brand/Model if preferred
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black87,
-                          ),
-                        ),
+                     
                       ],
                     ),
                   ),

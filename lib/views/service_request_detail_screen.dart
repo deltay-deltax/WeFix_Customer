@@ -13,10 +13,12 @@ class ServiceRequestDetailScreen extends StatefulWidget {
   const ServiceRequestDetailScreen({super.key, required this.request});
 
   @override
-  State<ServiceRequestDetailScreen> createState() => _ServiceRequestDetailScreenState();
+  State<ServiceRequestDetailScreen> createState() =>
+      _ServiceRequestDetailScreenState();
 }
 
-class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen> {
+class _ServiceRequestDetailScreenState
+    extends State<ServiceRequestDetailScreen> {
   int _pendingRating = 0;
   final TextEditingController _reviewCtrl = TextEditingController();
   bool _hideRating = false;
@@ -30,16 +32,16 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
 
   Future<void> _submitRating(ServiceRequestModel req) async {
     if (_pendingRating == 0) return;
-    
+
     setState(() => _isSubmitting = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
       final userName = user?.displayName ?? 'Anonymous';
       final userId = user?.uid;
       final userAvatar = user?.photoURL;
-      
+
       final review = _reviewCtrl.text.trim();
-      
+
       // 1. Update the Request document (Correct Path)
       // Force path to shop_users/{shopId}/requests/{id} to avoid any root /requests reference issues
       final requestRef = FirebaseFirestore.instance
@@ -51,7 +53,8 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
       // Check if doc exists before updating to avoid crash, though it should exist
       final docSnap = await requestRef.get();
       if (!docSnap.exists) {
-          throw Exception("Service request document not found at expected path: ${requestRef.path}");
+        throw Exception(
+            "Service request document not found at expected path: ${requestRef.path}");
       }
 
       await requestRef.update({
@@ -61,23 +64,23 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
 
       // 2. Add to Shop's 'ratings' collection
       if (req.shopId.isNotEmpty) {
-          await FirebaseFirestore.instance
+        await FirebaseFirestore.instance
             .collection('shop_users')
             .doc(req.shopId)
             .collection('ratings')
             .doc(req.id)
             .set({
-              'rating': _pendingRating,
-              'review': review,
-              'ratedAt': FieldValue.serverTimestamp(),
-              'requestId': req.id,
-              'userId': userId,
-              'userName': userName,
-              'userAvatar': userAvatar,
-            });
+          'rating': _pendingRating,
+          'review': review,
+          'ratedAt': FieldValue.serverTimestamp(),
+          'requestId': req.id,
+          'userId': userId,
+          'userName': userName,
+          'userAvatar': userAvatar,
+        });
       }
 
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Thank you for your feedback!')),
       );
     } catch (e) {
@@ -130,10 +133,12 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
             .snapshots(),
         builder: (context, snapshot) {
           ServiceRequestModel currentRequest = widget.request;
-          if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+          if (snapshot.hasData &&
+              snapshot.data != null &&
+              snapshot.data!.exists) {
             currentRequest = ServiceRequestModel.fromFirestore(snapshot.data!);
           }
-           return _buildBody(context, currentRequest);
+          return _buildBody(context, currentRequest);
         },
       ),
     );
@@ -141,200 +146,201 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
 
   Widget _buildBody(BuildContext context, ServiceRequestModel req) {
     return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image Section
-            Container(
-              height: 200,
-              width: double.infinity,
-              color: Colors.grey[200],
-              child: req.images.isNotEmpty
-                  ? PageView.builder(
-                      itemCount: req.images.length,
-                      itemBuilder: (context, index) {
-                        return Image.network(
-                          req.images[index],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                        );
-                      },
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                         Icon(Icons.image_not_supported,
-                            size: 50, color: Colors.grey[400]),
-                        const SizedBox(height: 8),
-                         Text(
-                          'No images provided',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header: Device Name & Status
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image Section
+          Container(
+            height: 200,
+            width: double.infinity,
+            color: Colors.grey[200],
+            child: req.images.isNotEmpty
+                ? PageView.builder(
+                    itemCount: req.images.length,
+                    itemBuilder: (context, index) {
+                      return Image.network(
+                        req.images[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(
+                                child: Icon(Icons.broken_image,
+                                    size: 50, color: Colors.grey)),
+                      );
+                    },
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              req.deviceType, // Or Brand + Model
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
+                      Icon(Icons.image_not_supported,
+                          size: 50, color: Colors.grey[400]),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No images provided',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header: Device Name & Status
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            req.deviceType, // Or Brand + Model
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (req.modelNumber.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                'Model No: ${req.modelNumber}',
+                                style: TextStyle(color: Colors.grey[600]),
                               ),
                             ),
-                            if (req.modelNumber.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  'Model No: ${req.modelNumber}',
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                              ),
-                          ],
+                        ],
+                      ),
+                    ),
+                    _StatusBadge(status: req.status),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Info Pills Row
+                Row(
+                  children: [
+                    _ActionPill(
+                      label: 'Phone',
+                      onTap: () => _launchPhone(req.phone),
+                      isButton: true,
+                    ),
+                    const SizedBox(width: 8),
+                    // Priority Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Text(
+                        'Priority: ${req.priority}',
+                        style: TextStyle(
+                          color: Colors.orange[800],
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      _StatusBadge(status: req.status),
-                    ],
+                    ),
+                    const SizedBox(width: 8),
+                    // Amount Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Text(
+                        '₹ ${req.amount}',
+                        style: TextStyle(
+                          color: Colors.green[800],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Problem Description
+                const Text(
+                  'Problem Description',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Info Pills Row
-                  Row(
-                    children: [
-                      _ActionPill(
-                        label: 'Phone',
-                        onTap: () => _launchPhone(req.phone),
-                        isButton: true,
-                      ),
-                      const SizedBox(width: 8),
-                      // Priority Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.orange[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Text(
-                          'Priority: ${req.priority}', 
-                          style: TextStyle(
-                            color: Colors.orange[800],
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Amount Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.green[50], 
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Text(
-                          '₹ ${req.amount}',
-                          style: TextStyle(
-                            color: Colors.green[800],
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    req.problem.isNotEmpty
+                        ? req.problem
+                        : 'No description provided',
+                    style: const TextStyle(fontSize: 15),
                   ),
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // Problem Description
+                // Technician Report
+                if (req.serviceDetails != null) ...[
                   const Text(
-                    'Problem Description',
+                    'Technician Report',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                     req.problem.isNotEmpty ? req.problem : 'No description provided',
-                      style: const TextStyle(fontSize: 15),
-                    ),
-                  ),
-
+                  _buildTechnicianReport(req),
                   const SizedBox(height: 24),
-
-                  // Technician Report
-                  if (req.serviceDetails != null) ...[
-                    const Text(
-                      'Technician Report',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildTechnicianReport(req),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Customer Details
-                  const Text(
-                    'Customer Details',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  _CustomerInfoRow(
-                    icon: Icons.person_outline,
-                    label: 'Name',
-                    value: req.yourName,
-                  ),
-                   _CustomerInfoRow(
-                    icon: Icons.phone_outlined,
-                    label: 'Phone',
-                    value: req.phone,
-                  ),
-                   _CustomerInfoRow(
-                    icon: Icons.location_on_outlined,
-                    label: 'Address',
-                    value: req.pickupAddress,
-                  ),
-                   _CustomerInfoRow(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Created At',
-                    value: req.createdAt != null 
-                        ? DateFormat('yyyy-MM-dd HH:mm:ss').format(req.createdAt!)
-                        : 'N/A',
-                  ),
-                  
-                  // Rating Section
-                  _buildRatingSection(context, req),
-
-                  const SizedBox(height: 24),
-
-                  // Raise a Complaint
-                  _buildComplaintButton(context, req),
-
-                  const SizedBox(height: 80), // Bottom padding for FAB/Button
                 ],
-              ),
+
+                // Customer Details
+                const Text(
+                  'Your Details',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _CustomerInfoRow(
+                  icon: Icons.phone_outlined,
+                  label: 'Phone',
+                  value: req.phone,
+                ),
+                _CustomerInfoRow(
+                  icon: Icons.location_on_outlined,
+                  label: 'Address',
+                  value: req.pickupAddress,
+                ),
+                _CustomerInfoRow(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Created At',
+                  value: req.createdAt != null
+                      ? DateFormat('yyyy-MM-dd HH:mm:ss').format(req.createdAt!)
+                      : 'N/A',
+                ),
+
+                // Rating Section
+                _buildRatingSection(context, req),
+
+                const SizedBox(height: 24),
+
+                // Raise a Complaint
+                _buildComplaintButton(context, req),
+
+                const SizedBox(height: 80), // Bottom padding for FAB/Button
+              ],
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTechnicianReport(ServiceRequestModel req) {
@@ -356,14 +362,13 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
           ),
           const SizedBox(height: 12),
           _ReportItem(
-            icon: Icons.settings_input_component_outlined, 
+            icon: Icons.settings_input_component_outlined,
             label: 'Parts Replaced',
             value: details.partsReplaced,
           ),
           const SizedBox(height: 16),
           Divider(color: Colors.blue.shade200),
           const SizedBox(height: 8),
-          
           _CostRow(label: 'Labor Cost:', value: '₹${details.laborCost}'),
           _CostRow(label: 'Parts Cost:', value: '₹${details.partsCost}'),
           const SizedBox(height: 8),
@@ -379,29 +384,31 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color:  Color(0xFF2F74F9),
+                  color: Color(0xFF2F74F9),
                 ),
               ),
             ],
           ),
-           const SizedBox(height: 12),
-           Container(
-             padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-             child: Row(
-               children: [
-                 const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                 const SizedBox(width: 4),
-                 RichText(
-                   text: TextSpan(
-                     children:[
-                        const TextSpan(text: 'Warranty: ', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                        TextSpan(text: details.warranty, style: const TextStyle(color: Colors.green)),
-                     ]
-                   )
-                 )
-               ],
-             ),
-           )
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                const SizedBox(width: 4),
+                RichText(
+                    text: TextSpan(children: [
+                  const TextSpan(
+                      text: 'Warranty: ',
+                      style: TextStyle(
+                          color: Colors.green, fontWeight: FontWeight.bold)),
+                  TextSpan(
+                      text: details.warranty,
+                      style: const TextStyle(color: Colors.green)),
+                ]))
+              ],
+            ),
+          )
         ],
       ),
     );
@@ -449,7 +456,8 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
                   ),
                 ],
               ),
-              child: const Icon(Icons.check_rounded, size: 40, color: AppColors.primary2),
+              child: const Icon(Icons.check_rounded,
+                  size: 40, color: AppColors.primary2),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -471,7 +479,9 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(5, (index) {
                 return Icon(
-                  index < req.rating! ? Icons.star_rounded : Icons.star_outline_rounded,
+                  index < req.rating!
+                      ? Icons.star_rounded
+                      : Icons.star_outline_rounded,
                   color: AppColors.primary2,
                   size: 28,
                 );
@@ -480,7 +490,8 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
             if (req.review != null && req.review!.isNotEmpty) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -507,16 +518,16 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
       margin: const EdgeInsets.only(top: 24),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-         color: Colors.white,
-         borderRadius: BorderRadius.circular(24),
-         boxShadow: [
-           BoxShadow(
-             color: Colors.black.withOpacity(0.06),
-             blurRadius: 20,
-             offset: const Offset(0, 8),
-           )
-         ],
-         border: Border.all(color: Colors.grey.shade100),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          )
+        ],
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -554,8 +565,12 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
                       scale: isSelected ? 1.2 : 1.0,
                       duration: const Duration(milliseconds: 200),
                       child: Icon(
-                        isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
-                        color: isSelected ? AppColors.primary2 : AppColors.primary2.withOpacity(0.4),
+                        isSelected
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: isSelected
+                            ? AppColors.primary2
+                            : AppColors.primary2.withOpacity(0.4),
                         size: 36,
                       ),
                     ),
@@ -584,7 +599,8 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 1.5),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -597,13 +613,14 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
               Expanded(
                 child: TextButton(
                   onPressed: () {
-                     setState(() {
-                       _hideRating = true;
-                     });
+                    setState(() {
+                      _hideRating = true;
+                    });
                   },
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                   child: const Text(
                     'Don\'t Rate',
@@ -617,23 +634,29 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: (_pendingRating > 0 && !_isSubmitting) 
-                    ? () => _submitRating(req)
-                    : null,
+                  onPressed: (_pendingRating > 0 && !_isSubmitting)
+                      ? () => _submitRating(req)
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary2,
                     foregroundColor: Colors.white,
                     elevation: 4,
                     shadowColor: AppColors.primary2.withOpacity(0.4),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: _isSubmitting 
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : const Text(
-                        'Submit Review',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2.5))
+                      : const Text(
+                          'Submit Review',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                 ),
               ),
             ],
@@ -647,7 +670,7 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
     // Only show if strictly completed or payment_done
     final s = req.status.toLowerCase();
     final isCompleted = s == 'completed' || s == 'payment_done';
-        
+
     if (!isCompleted) return const SizedBox.shrink();
 
     // Serialize the request as a plain Map so RaiseComplaintScreen can use it
@@ -658,9 +681,8 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
       'shopName': req.shopName,
       'deviceType': req.deviceType,
       'brand': req.brand,
-      'createdAt': req.createdAt != null
-          ? Timestamp.fromDate(req.createdAt!)
-          : null,
+      'createdAt':
+          req.createdAt != null ? Timestamp.fromDate(req.createdAt!) : null,
     };
 
     return SizedBox(
@@ -698,7 +720,6 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
   }
 }
 
-
 class _StatusBadge extends StatelessWidget {
   final String status;
   const _StatusBadge({super.key, required this.status});
@@ -730,7 +751,7 @@ class _StatusBadge extends StatelessWidget {
         bg = AppColors.chipPaymentBg;
         text = AppColors.chipPayment;
         break;
-       case 'declined':
+      case 'declined':
       case 'Declined':
         bg = AppColors.chipDeclinedBg;
         text = AppColors.chipDeclined;
@@ -764,12 +785,11 @@ class _ActionPill extends StatelessWidget {
   final VoidCallback onTap;
   final bool isButton;
 
-  const _ActionPill({
-    super.key,
-    required this.label, 
-    required this.onTap, 
-    this.isButton = false
-  });
+  const _ActionPill(
+      {super.key,
+      required this.label,
+      required this.onTap,
+      this.isButton = false});
 
   @override
   Widget build(BuildContext context) {
@@ -799,7 +819,11 @@ class _ReportItem extends StatelessWidget {
   final String label;
   final String value;
 
-  const _ReportItem({super.key, required this.icon, required this.label, required this.value});
+  const _ReportItem(
+      {super.key,
+      required this.icon,
+      required this.label,
+      required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -819,7 +843,8 @@ class _ReportItem extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 value.isNotEmpty ? value : '-',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.normal),
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.normal),
               ),
             ],
           ),
@@ -843,7 +868,9 @@ class _CostRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(value,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         ],
       ),
     );
@@ -856,7 +883,11 @@ class _CustomerInfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _CustomerInfoRow({super.key, required this.icon, required this.label, required this.value});
+  const _CustomerInfoRow(
+      {super.key,
+      required this.icon,
+      required this.label,
+      required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -867,19 +898,22 @@ class _CustomerInfoRow extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.grey[600], size: 20),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value.isNotEmpty ? value : '-',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value.isNotEmpty ? value : '-',
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
           ),
         ],
       ),

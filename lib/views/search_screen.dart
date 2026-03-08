@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_routes.dart';
@@ -15,49 +17,91 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
+// ─── Full subcategory lists (must match Firestore exactly) ────────────────────
+const List<String> _kHouseholdSubs = [
+  'Refrigerator (Fridge)',
+  'Washing Machine',
+  'Microwave Oven',
+  'Air Conditioner (AC)',
+  'Water Purifier / RO System',
+  'Geyser / Water Heater',
+  'Mixer / Grinder',
+  'Induction Cooktop',
+  'Electric Kettle',
+  'Vacuum Cleaner',
+  'Electric Iron',
+  'Air Cooler',
+  'Inverter / UPS',
+  'Smart TV / LED TV',
+  'Home Theatre System',
+  'Room Heater',
+  'Chimney / Exhaust Fan',
+  'Dishwasher',
+];
+
+const List<String> _kComputerSubs = [
+  'Laptop',
+  'Desktop CPU',
+  'Monitor',
+  'Printer',
+  'Scanner',
+  'Keyboard',
+  'Mouse',
+  'External Hard Disk / SSD / HDD',
+  'RAM',
+  'Graphic Card (GPU)',
+  'Motherboard',
+  'SMPS / Power Supply',
+  'Router / Modem',
+  'Webcam',
+  'Headphones / Headset',
+  'Microphone',
+  'UPS (for PC)',
+  'Pen Drive (logical repair / recovery)',
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
-  String? _selectedGroup; // 'Computer Peripherals' | 'Household Electronics'
-  String? _selectedSubcat;
 
-  final List<String> _peripherals = const [
-    'Laptop',
-    'MotherBoard',
-    'Keyboard',
-    'Mouse',
-    'Printer',
-    'Monitor',
-  ];
-  final List<String> _household = const [
-    'Fridge',
-    'Washing Machine',
-    'AC',
-    'TV',
-    'Microwave',
-  ];
+  // Filter state
+  String? _selectedGroup;   // 'Household Electronics' | 'Computer & Peripherals'
+  String? _selectedSubcat;  // exact Firestore subcategory value
 
   final List<String> _filterDistances = ['500m', '1km', '3km', '5km'];
-  String _selectedDistance = '5km'; // Default
+  String _selectedDistance = '5km';
+
   Position? _userPosition;
   bool _isLoadingLocation = true;
+
+  // Shops matched via service-name search (shop_users subcollection)
+  Set<String> _serviceMatchedShopIds = {};
+  bool _isSearchingServices = false;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _getUserLocation();
+    _searchCtrl.addListener(_onSearchChanged);
   }
 
-  Future<void> _getUserLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.removeListener(_onSearchChanged);
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  // ── Location ────────────────────────────────────────────────────────────────
+  Future<void> _getUserLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) setState(() => _isLoadingLocation = false);
       return;
     }
-
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -65,19 +109,12 @@ class _SearchScreenState extends State<SearchScreen> {
         return;
       }
     }
-
     if (permission == LocationPermission.deniedForever) {
       if (mounted) setState(() => _isLoadingLocation = false);
       return;
     }
-
     final pos = await Geolocator.getCurrentPosition();
-    if (mounted) {
-      setState(() {
-        _userPosition = pos;
-        _isLoadingLocation = false;
-      });
-    }
+    if (mounted) setState(() { _userPosition = pos; _isLoadingLocation = false; });
   }
 
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -92,21 +129,113 @@ class _SearchScreenState extends State<SearchScreen> {
   double _getFilterRadiusInKm() {
     switch (_selectedDistance) {
       case '500m': return 0.5;
-      case '1km': return 1.0;
-      case '3km': return 3.0;
-      case '5km': return 5.0;
-      case 'All (Debug)': return 10000.0; // Very large radius to load everything
-      default: return 5.0;
+      case '1km':  return 1.0;
+      case '3km':  return 3.0;
+      case '5km':  return 5.0;
+      default:     return 5.0;
     }
   }
 
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
+  // ── Service-name search (debounced) ─────────────────────────────────────────
+  void _onSearchChanged() {
+    _debounce?.cancel();
+    final q = _searchCtrl.text.trim();
+    if (q.isEmpty) {
+      if (mounted) setState(() { _serviceMatchedShopIds = {}; _isSearchingServices = false; });
+      return;
+    }
+    setState(() => _isSearchingServices = true);
+    _debounce = Timer(const Duration(milliseconds: 400), () => _searchServices(q));
   }
 
+  /// Queries shop_users/{shopId}/services where name starts with [q].
+  /// Firestore doesn't support LIKE, so we use the standard prefix-range trick.
+  Future<void> _searchServices(String q) async {
+    final raw = q.trim();
+    if (raw.isEmpty) {
+      if (mounted) setState(() { _serviceMatchedShopIds = {}; _isSearchingServices = false; });
+      return;
+    }
+
+    // Try two prefix variants:
+    //   1. Exactly as-typed  (e.g. "bat")
+    //   2. First letter capitalised (e.g. "Bat") — matches "Battery Replacement"
+    final variants = <String>{
+      raw,
+      raw[0].toUpperCase() + (raw.length > 1 ? raw.substring(1) : ''),
+    };
+
+    final ids = <String>{};
+
+    for (final v in variants) {
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collectionGroup('services')
+            .where('name', isGreaterThanOrEqualTo: v)
+            .where('name', isLessThanOrEqualTo: '$v\uf8ff')
+            .get();
+
+        // Service path: shop_users/{shopId}/services/{serviceId}
+        // parent       = CollectionReference  (services)
+        // parent.parent = DocumentReference    (shop doc)
+        for (final d in snap.docs) {
+          final shopId = d.reference.parent.parent?.id;
+          if (shopId != null) ids.add(shopId);
+        }
+      } catch (_) {
+        // ignore individual variant failures
+      }
+    }
+
+    if (mounted) setState(() { _serviceMatchedShopIds = ids; _isSearchingServices = false; });
+  }
+
+  // ── Filter helpers ──────────────────────────────────────────────────────────
+
+  /// Whether a shop doc passes the current text search.
+  /// Matches: shop name OR subcategories array OR service-name lookup.
+  bool _matchesSearch(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    if (q.isEmpty) return true;
+
+    final data = doc.data();
+
+    // 1. Shop name
+    final name = ((data['companyLegalName'] ??
+            data['companyLegalname'] ??
+            data['companylegalName'] ??
+            '') as String)
+        .toLowerCase();
+    if (name.contains(q)) return true;
+
+    // 2. Subcategories array (partial match)
+    final subs = (data['subcategories'] as List<dynamic>? ?? [])
+        .map((e) => e.toString().toLowerCase());
+    if (subs.any((s) => s.contains(q))) return true;
+
+    // 3. Service-name match (from async query above)
+    if (_serviceMatchedShopIds.contains(doc.id)) return true;
+
+    return false;
+  }
+
+  /// Whether a shop doc is within the selected distance radius.
+  bool _withinRadius(Map<String, dynamic> data) {
+    if (_userPosition == null) return true; // no location, show all
+    try {
+      final address = data['address'] as Map<String, dynamic>?;
+      if (address == null) return false;
+      final lat = double.parse(address['lat'] as String);
+      final lng = double.parse(address['lng'] as String);
+      final dist = _calculateDistance(
+          _userPosition!.latitude, _userPosition!.longitude, lat, lng);
+      return dist <= _getFilterRadiusInKm();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── Build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,45 +243,64 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Header ────────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-             
-                  const Text(
-                    'Search',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: _openFilter,
-                      ),
-                     
-                    ],
+                  const Text('Search',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                  IconButton(
+                    icon: Stack(
+                      children: [
+                        const Icon(Icons.filter_list),
+                        if (_selectedSubcat != null)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    onPressed: _openFilter,
                   ),
                 ],
               ),
             ),
+
+            // ── Search bar ────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 controller: _searchCtrl,
-                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Search shops...',
+                  hintText: 'Search shop, service, or device…',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchCtrl.text.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            setState(() {});
-                          },
-                        ),
+                  suffixIcon: _isSearchingServices
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2)),
+                        )
+                      : _searchCtrl.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() {});
+                              },
+                            ),
                   filled: true,
                   fillColor: AppColors.inputFill,
                   border: OutlineInputBorder(
@@ -164,7 +312,30 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            // Filter Chips Row
+
+            // ── Active filter chips ───────────────────────────────────────────
+            if (_selectedSubcat != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 4),
+                child: Wrap(
+                  spacing: 6,
+                  children: [
+                    Chip(
+                      label: Text(_selectedSubcat!,
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.primary)),
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: () => setState(() {
+                        _selectedSubcat = null;
+                        _selectedGroup = null;
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+
+            // ── Distance chips ────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
               child: SingleChildScrollView(
@@ -177,21 +348,20 @@ class _SearchScreenState extends State<SearchScreen> {
                       child: ChoiceChip(
                         label: Text(dist),
                         selected: isSelected,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            _selectedDistance = dist;
-                          });
-                        },
+                        onSelected: (_) => setState(() => _selectedDistance = dist),
                         backgroundColor: Colors.white,
                         selectedColor: AppColors.primary.withOpacity(0.2),
                         labelStyle: TextStyle(
                           color: isSelected ? AppColors.primary : Colors.black87,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: isSelected ? AppColors.primary : Colors.grey.shade300,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade300,
                           ),
                         ),
                       ),
@@ -201,99 +371,67 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 8),
+
+            // ── Results ────────────────────────────────────────────────────────
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: (_selectedSubcat == null)
-                      ? FirebaseFirestore.instance
-                            .collection('registered_shop_users')
-                            .snapshots()
-                      : FirebaseFirestore.instance
-                            .collection('registered_shop_users')
-                            .where(
-                              'subcategories',
-                              arrayContains: _selectedSubcat,
-                            )
-                            .snapshots(),
+                  stream: _buildStream(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting || _isLoadingLocation) {
+                    if (snapshot.connectionState == ConnectionState.waiting ||
+                        _isLoadingLocation) {
                       return const Center(child: CircularProgressIndicator());
                     }
-                    var docs = snapshot.data?.docs ?? [];
-                    final q = _searchCtrl.text.trim().toLowerCase();
-                    if (q.isNotEmpty) {
-                      docs = docs.where((d) {
-                        final name =
-                            ((d.data()['companyLegalName'] ??
-                                        d.data()['companyLegalname'] ??
-                                        d.data()['companylegalName'] ??
-                                        'Shop')
-                                    as String)
-                                .toLowerCase();
-                        return name.contains(q);
-                      }).toList();
-                    }
 
-                    // Distance Filtering Logic
+                    var docs = snapshot.data?.docs ?? [];
+
+                    // Apply text + service search
+                    docs = docs.where(_matchesSearch).toList();
+
+                    // Apply distance filter
                     if (_userPosition != null) {
-                      final radiusKm = _getFilterRadiusInKm();
-                      docs = docs.where((doc) {
-                        final data = doc.data();
-                        
-                        try {
-                          final address = data['address'] as Map<String, dynamic>?;
-                          if (address == null) return false;
-                          
-                          final latStr = address['lat'] as String?;
-                          final lngStr = address['lng'] as String?;
-                          
-                          if (latStr == null || lngStr == null) return false;
-                          
-                          final double lat = double.parse(latStr);
-                          final double lng = double.parse(lngStr);
-                          
-                          final double distance = _calculateDistance(
-                            _userPosition!.latitude, 
-                            _userPosition!.longitude, 
-                            lat, 
-                            lng
-                          );
-                          
-                          return distance <= radiusKm;
-                        } catch (e) {
-                          return false; // Error parsing or finding location
-                        }
-                      }).toList();
+                      docs = docs.where((d) => _withinRadius(d.data())).toList();
                     }
 
                     if (docs.isEmpty) {
-                      return const Center(child: Text('No shops found'));
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.search_off,
+                                size: 48, color: Colors.grey.shade400),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No shops found',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      );
                     }
+
                     return GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: .8,
-                          ),
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: .8,
+                      ),
                       itemCount: docs.length,
                       itemBuilder: (context, i) {
                         final data = docs[i].data();
                         final id = docs[i].id;
-                        final title =
-                            (data['companyLegalName'] ??
-                                    data['companyLegalname'] ??
-                                    data['companylegalName'] ??
-                                    'Shop')
-                                .toString();
-                        final image = ShopImageHelper.getImage(data);
+                        final title = (data['companyLegalName'] ??
+                                data['companyLegalname'] ??
+                                data['companylegalName'] ??
+                                'Shop')
+                            .toString();
                         return _SearchResultCard(
                           shopId: id,
                           title: title,
-                          image: image,
-                          debugData: data,
+                          image: ShopImageHelper.getImage(data),
                         );
                       },
                     );
@@ -307,144 +445,124 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  /// Firestore stream: if a subcategory filter is active, restrict to that.
+  Stream<QuerySnapshot<Map<String, dynamic>>> _buildStream() {
+    Query<Map<String, dynamic>> q = FirebaseFirestore.instance
+        .collection('registered_shop_users');
+
+    if (_selectedSubcat != null) {
+      q = q.where('subcategories', arrayContains: _selectedSubcat);
+    }
+
+    return q.snapshots();
+  }
+
+  // ── Filter bottom sheet ─────────────────────────────────────────────────────
   void _openFilter() {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      isScrollControlled: false,
+      isScrollControlled: true,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            final selectedColor = AppColors.primary.withOpacity(.12);
-            final selectedText = AppColors.primary;
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Filters',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Category',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('Computer Peripherals'),
-                        selected: _selectedGroup == 'Computer Peripherals',
-                        selectedColor: selectedColor,
-                        labelStyle: TextStyle(
-                          color: _selectedGroup == 'Computer Peripherals'
-                              ? selectedText
-                              : Colors.black87,
-                        ),
-                        onSelected: (s) {
-                          setModalState(() {
-                            _selectedGroup = s ? 'Computer Peripherals' : null;
-                            _selectedSubcat = null;
-                          });
-                          setState(() {});
-                        },
-                      ),
-                      ChoiceChip(
-                        label: const Text('Household Electronics'),
-                        selected: _selectedGroup == 'Household Electronics',
-                        selectedColor: selectedColor,
-                        labelStyle: TextStyle(
-                          color: _selectedGroup == 'Household Electronics'
-                              ? selectedText
-                              : Colors.black87,
-                        ),
-                        onSelected: (s) {
-                          setModalState(() {
-                            _selectedGroup = s ? 'Household Electronics' : null;
-                            _selectedSubcat = null;
-                          });
-                          setState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (_selectedGroup != null) ...[
-                    const Text(
-                      'Subcategory',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
+            final sel = AppColors.primary.withOpacity(.12);
+            final selText = AppColors.primary;
+
+            final subcats = _selectedGroup == 'Household Electronics'
+                ? _kHouseholdSubs
+                : _selectedGroup == 'Computer & Peripherals'
+                    ? _kComputerSubs
+                    : <String>[];
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.6,
+              maxChildSize: 0.92,
+              builder: (_, scrollCtrl) => Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: ListView(
+                  controller: scrollCtrl,
+                  children: [
+                    const Text('Filters',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16)),
+                    const SizedBox(height: 12),
+                    const Text('Category',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
-                      children:
-                          (_selectedGroup == 'Computer Peripherals'
-                                  ? _peripherals
-                                  : _household)
-                              .map(
-                                (s) => ChoiceChip(
+                      children: [
+                        _groupChip('Household Electronics', setModalState, sel, selText),
+                        _groupChip('Computer & Peripherals', setModalState, sel, selText),
+                      ],
+                    ),
+                    if (_selectedGroup != null) ...[
+                      const SizedBox(height: 12),
+                      const Text('Subcategory',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: subcats
+                            .map((s) => ChoiceChip(
                                   label: Text(s),
                                   selected: _selectedSubcat == s,
-                                  selectedColor: selectedColor,
+                                  selectedColor: sel,
                                   avatar: _selectedSubcat == s
-                                      ? const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.orange,
-                                          size: 18,
-                                        )
+                                      ? Icon(Icons.check_circle,
+                                          color: selText, size: 18)
                                       : null,
                                   labelStyle: TextStyle(
+                                    fontSize: 12,
                                     color: _selectedSubcat == s
-                                        ? selectedText
+                                        ? selText
                                         : Colors.black87,
                                   ),
                                   onSelected: (_) {
                                     setModalState(() {
-                                      _selectedSubcat = _selectedSubcat == s
-                                          ? null
-                                          : s;
+                                      _selectedSubcat =
+                                          _selectedSubcat == s ? null : s;
                                     });
                                     setState(() {});
                                   },
-                                ),
-                              )
-                              .toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setModalState(() {
-                              _selectedGroup = null;
-                              _selectedSubcat = null;
-                            });
-                            setState(() {});
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Clear'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Apply'),
-                        ),
+                                ))
+                            .toList(),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                _selectedGroup = null;
+                                _selectedSubcat = null;
+                              });
+                              setState(() {});
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Clear'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -452,19 +570,37 @@ class _SearchScreenState extends State<SearchScreen> {
       },
     );
   }
+
+  Widget _groupChip(String label, StateSetter setModalState,
+      Color sel, Color selText) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _selectedGroup == label,
+      selectedColor: sel,
+      labelStyle: TextStyle(
+        color: _selectedGroup == label ? selText : Colors.black87,
+      ),
+      onSelected: (s) {
+        setModalState(() {
+          _selectedGroup = s ? label : null;
+          _selectedSubcat = null;
+        });
+        setState(() {});
+      },
+    );
+  }
 }
 
+// ─── Search result card ───────────────────────────────────────────────────────
 class _SearchResultCard extends StatelessWidget {
   final String shopId;
   final String title;
   final String? image;
-  final Map<String, dynamic> debugData;
 
   const _SearchResultCard({
     required this.shopId,
     required this.title,
     required this.image,
-    required this.debugData,
   });
 
   @override
@@ -486,7 +622,10 @@ class _SearchResultCard extends StatelessWidget {
               child: ShopAsyncImage(
                 shopId: shopId,
                 fit: BoxFit.cover,
-                errorBuilder: (ctx, err, stack) => _placeholder(err),
+                errorBuilder: (ctx, err, stack) => Container(
+                  color: Colors.grey[300],
+                  child: const Center(child: Icon(Icons.storefront)),
+                ),
               ),
             ),
             Padding(
@@ -510,34 +649,4 @@ class _SearchResultCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _placeholder(Object? error) => Container(
-    color: Colors.grey[300],
-    child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.image_not_supported),
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                error.toString(),
-                style: const TextStyle(fontSize: 8, color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          if (error == null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                'Data Keys:\n${debugData.keys.join(', ')}\nphotos: ${debugData['photos']}\nprimaryPhoto: ${debugData['primaryPhoto']}',
-                style: const TextStyle(fontSize: 7, color: Colors.blue),
-                textAlign: TextAlign.center,
-              ),
-            ),
-        ],
-      )
-    ),
-  );
 }

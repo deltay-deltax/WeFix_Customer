@@ -21,10 +21,13 @@ import '../views/raise_complaint_screen.dart';
 import '../views/my_complaints_screen.dart';
 import '../views/manage_addresses_screen.dart';
 import '../views/add_address_screen.dart';
+import '../views/splash_screen.dart';
 
 class AppRouter {
   static Route<dynamic> generate(RouteSettings settings) {
     switch (settings.name) {
+      case AppRoutes.splash:
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
       case AppRoutes.login:
         return MaterialPageRoute(
           builder: (_) => const auth_login.LoginScreen(),

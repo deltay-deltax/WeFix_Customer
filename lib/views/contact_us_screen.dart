@@ -85,9 +85,9 @@ class ContactUsScreen extends StatelessWidget {
             iconColor: const Color(0xFF10B981),
             iconBg: const Color(0xFFD1FAE5),
             label: 'Phone',
-            value: '+91 98767 87653',
+            value: '+91 86183 80961',
             subtitle: 'Tap to call us directly',
-            onTap: () => _launch('tel:+919876787653'),
+            onTap: () => _launch('tel:+918618380961'),
           ),
           const SizedBox(height: 12),
           _ContactCard(
@@ -95,9 +95,9 @@ class ContactUsScreen extends StatelessWidget {
             iconColor: AppColors.primary,
             iconBg: const Color(0xFFE0EDFF),
             label: 'Email',
-            value: 'support@wekeep.com',
+            value: 'wefix.info25@gmail.com',
             subtitle: 'We reply within 24 hours',
-            onTap: () => _launch('mailto:support@wekeep.com'),
+            onTap: () => _launch('mailto:wefix.info25@gmail.com'),
           ),
           const SizedBox(height: 12),
           _ContactCard(

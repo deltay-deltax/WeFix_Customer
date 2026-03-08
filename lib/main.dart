@@ -10,11 +10,11 @@ import 'services/notification_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  
+
   // Initialize Push Notifications
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService.instance.initialize();
-  
+
   runApp(const WeFixApp());
 }
 
@@ -42,9 +42,7 @@ class WeFixApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4285F4)),
           useMaterial3: true,
         ),
-        initialRoute: FirebaseAuth.instance.currentUser == null
-            ? AppRoutes.login
-            : AppRoutes.home,
+        initialRoute: AppRoutes.splash,
         onGenerateRoute: AppRouter.generate,
       ),
     );
