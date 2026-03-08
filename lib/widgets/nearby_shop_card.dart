@@ -12,7 +12,11 @@ class NearbyShopCard extends StatelessWidget {
     final borderColor = shop.verified ? Colors.green.shade400 : Colors.blue.shade400;
     return InkWell(
       onTap: () {
-        Navigator.of(context).pushNamed(AppRoutes.shopDetails, arguments: shop);
+        Navigator.of(context).pushNamed(AppRoutes.productDetails, arguments: {
+          'shopId': shop.name, // using name as id since it's dummy data
+          'title': shop.name,
+          'image': shop.imageAsset,
+        });
       },
       child: Container(
       margin: const EdgeInsets.all(8),

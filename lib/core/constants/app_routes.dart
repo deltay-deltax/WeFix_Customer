@@ -12,11 +12,12 @@ class AppRoutes {
   static const String warrantyDetail = '/warranty-detail';
   static const String notifications = '/notifications';
   static const String nearbyShops = '/nearby-shops';
-  static const String shopDetails = '/shop-details';
   static const String search = '/search';
   static const String productDetails = '/product-details';
   static const String requestService = '/request-service';
   static const String editProfile = '/edit-profile';
   static const String raiseComplaint = '/raise-complaint';
   static const String myComplaints = '/my-complaints';
+  static const String manageAddresses = '/manage-addresses';
+  static const String addAddress = '/add-address';
 }

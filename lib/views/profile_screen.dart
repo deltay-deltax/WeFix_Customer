@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wefix/core/utils/shop_image_helper.dart';
 import '../core/constants/app_routes.dart';
 import '../core/constants/app_colors.dart';
+import '../widgets/shop_async_image.dart';
+import '../widgets/shop_rating.dart';
 import '../viewModels/profile_viewmodel.dart';
 import '../core/services/auth_service.dart';
 import 'terms_of_use_screen.dart';
@@ -221,13 +224,8 @@ class ProfileScreen extends StatelessWidget {
                         icon: Icons.location_on_outlined,
                         label: "My Address",
                         onTap: () {
-                          if (vm.fullAddress != null) {
-                            _showAddressBottomSheet(context, vm.fullAddress!);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('No address found')),
-                            );
-                          }
+                          Navigator.pushNamed(
+                              context, AppRoutes.manageAddresses);
                         },
                       ),
                       ProfileActionTile(
@@ -472,7 +470,7 @@ class _FavoriteShopsGrid extends StatelessWidget {
         final ids = favIds.length > 10 ? favIds.sublist(0, 10) : favIds;
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: FirebaseFirestore.instance
-              .collection('shop_users')
+              .collection('registered_shop_users')
               .where(FieldPath.documentId, whereIn: ids)
               .snapshots(),
           builder: (context, shopSnap) {
@@ -506,7 +504,7 @@ class _FavoriteShopsGrid extends StatelessWidget {
                         d['companylegalName'] ??
                         'Shop')
                     .toString();
-                final image = d['imageUrl'] as String?;
+                final image = ShopImageHelper.getImage(d);
                 return Card(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -527,21 +525,26 @@ class _FavoriteShopsGrid extends StatelessWidget {
                       children: [
                         AspectRatio(
                           aspectRatio: 4 / 3,
-                          child: image != null && image.isNotEmpty
-                              ? Image.network(
-                                  image,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => _ph(),
-                                )
-                              : _ph(),
+                          child: ShopAsyncImage(
+                            shopId: docs[i].id,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _ph(),
+                          ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(10),
-                          child: Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 6),
+                              ShopRating(shopId: docs[i].id),
+                            ],
                           ),
                         ),
                       ],

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_routes.dart';
+import '../core/utils/shop_image_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProductDetailsScreen extends StatelessWidget {
@@ -43,24 +44,41 @@ class ProductDetailsScreen extends StatelessWidget {
                     data['companylegalName'] ??
                     'Shop')
                 .toString();
-        final image = data['imageUrl'] as String?;
+        
+        final initialImage = (ModalRoute.of(context)!.settings.arguments as Map?)?['image'] as String?;
         final description = (data['shopDescription'] ?? '').toString();
 
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: AspectRatio(
-                aspectRatio: 16 / 10,
-                child: image != null && image.isNotEmpty
-                    ? Image.network(
-                        image,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder(),
-                      )
-                    : _placeholder(),
-              ),
+            FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('registered_shop_users').doc(shopId).get(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const AspectRatio(aspectRatio: 16/10, child: Center(child: CircularProgressIndicator()));
+                }
+                final regData = snapshot.data?.data() as Map<String, dynamic>?;
+                final image = ShopImageHelper.getImage(regData);
+                final photos = regData?['photos'] is List ? (regData!['photos'] as List).cast<String>() : [];
+
+                final allImages = <String>[];
+                if (image != null && image.isNotEmpty) allImages.add(image);
+                for (final p in photos) {
+                  if (p.isNotEmpty && !allImages.contains(p)) allImages.add(p);
+                }
+
+                if (allImages.isEmpty) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 10,
+                      child: _placeholder(),
+                    ),
+                  );
+                }
+
+                return _ImageSlider(images: allImages);
+              },
             ),
             const SizedBox(height: 12),
             Row(
@@ -135,6 +153,11 @@ class ProductDetailsScreen extends StatelessWidget {
                       'Services',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'These are estimated prices, may vary depending on problem intensity.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                    ),
                     const SizedBox(height: 10),
                     StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                       stream: shopDoc.collection('services').snapshots(),
@@ -178,7 +201,7 @@ class ProductDetailsScreen extends StatelessWidget {
                               final id = await _createOrOpenChat(
                                 shopId,
                                 title,
-                                image,
+                                initialImage,
                               );
                               if (id == null) return;
                               if (!context.mounted) return;
@@ -188,7 +211,7 @@ class ProductDetailsScreen extends StatelessWidget {
                                 arguments: {
                                   'chatId': id,
                                   'title': title,
-                                  'image': image,
+                                  'image': initialImage,
                                 },
                               );
                             },
@@ -569,6 +592,70 @@ class _ServicePill extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ImageSlider extends StatefulWidget {
+  final List<String> images;
+  const _ImageSlider({required this.images});
+
+  @override
+  State<_ImageSlider> createState() => _ImageSliderState();
+}
+
+class _ImageSliderState extends State<_ImageSlider> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.images.isEmpty) return const SizedBox.shrink();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: AspectRatio(
+        aspectRatio: 16 / 10,
+        child: Stack(
+          children: [
+            PageView.builder(
+              itemCount: widget.images.length,
+              onPageChanged: (index) => setState(() => _currentIndex = index),
+              itemBuilder: (context, index) {
+                return Image.network(
+                  widget.images[index],
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: Colors.grey[300],
+                    child: const Center(child: Icon(Icons.image_not_supported)),
+                  ),
+                );
+              },
+            ),
+            if (widget.images.length > 1)
+              Positioned(
+                bottom: 8,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    widget.images.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _currentIndex == index
+                            ? AppColors.primary
+                            : Colors.white.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

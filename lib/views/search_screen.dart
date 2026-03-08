@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_routes.dart';
+import '../core/utils/shop_image_helper.dart';
+import '../widgets/shop_async_image.dart';
+import '../widgets/shop_rating.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:math' show cos, sqrt, asin;
@@ -36,6 +39,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final List<String> _filterDistances = ['500m', '1km', '3km', '5km'];
   String _selectedDistance = '5km'; // Default
   Position? _userPosition;
+  bool _isLoadingLocation = true;
 
   @override
   void initState() {
@@ -48,20 +52,30 @@ class _SearchScreenState extends State<SearchScreen> {
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    if (!serviceEnabled) {
+      if (mounted) setState(() => _isLoadingLocation = false);
+      return;
+    }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
+      if (permission == LocationPermission.denied) {
+        if (mounted) setState(() => _isLoadingLocation = false);
+        return;
+      }
     }
 
-    if (permission == LocationPermission.deniedForever) return;
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) setState(() => _isLoadingLocation = false);
+      return;
+    }
 
     final pos = await Geolocator.getCurrentPosition();
     if (mounted) {
       setState(() {
         _userPosition = pos;
+        _isLoadingLocation = false;
       });
     }
   }
@@ -81,6 +95,7 @@ class _SearchScreenState extends State<SearchScreen> {
       case '1km': return 1.0;
       case '3km': return 3.0;
       case '5km': return 5.0;
+      case 'All (Debug)': return 10000.0; // Very large radius to load everything
       default: return 5.0;
     }
   }
@@ -130,7 +145,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   hintText: 'Search shops...',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchCtrl.text.isEmpty
-                      ? const Icon(Icons.mic_none)
+                      ? null
                       : IconButton(
                           icon: const Icon(Icons.clear),
                           onPressed: () {
@@ -192,17 +207,17 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                   stream: (_selectedSubcat == null)
                       ? FirebaseFirestore.instance
-                            .collection('shop_users')
+                            .collection('registered_shop_users')
                             .snapshots()
                       : FirebaseFirestore.instance
-                            .collection('shop_users')
+                            .collection('registered_shop_users')
                             .where(
                               'subcategories',
                               arrayContains: _selectedSubcat,
                             )
                             .snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                    if (snapshot.connectionState == ConnectionState.waiting || _isLoadingLocation) {
                       return const Center(child: CircularProgressIndicator());
                     }
                     var docs = snapshot.data?.docs ?? [];
@@ -273,11 +288,12 @@ class _SearchScreenState extends State<SearchScreen> {
                                     data['companylegalName'] ??
                                     'Shop')
                                 .toString();
-                        final image = data['imageUrl'] as String?;
+                        final image = ShopImageHelper.getImage(data);
                         return _SearchResultCard(
                           shopId: id,
                           title: title,
                           image: image,
+                          debugData: data,
                         );
                       },
                     );
@@ -442,10 +458,13 @@ class _SearchResultCard extends StatelessWidget {
   final String shopId;
   final String title;
   final String? image;
+  final Map<String, dynamic> debugData;
+
   const _SearchResultCard({
     required this.shopId,
     required this.title,
     required this.image,
+    required this.debugData,
   });
 
   @override
@@ -464,13 +483,11 @@ class _SearchResultCard extends StatelessWidget {
           children: [
             AspectRatio(
               aspectRatio: 4 / 3,
-              child: (image != null && image!.isNotEmpty)
-                  ? Image.network(
-                      image!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    )
-                  : _placeholder(),
+              child: ShopAsyncImage(
+                shopId: shopId,
+                fit: BoxFit.cover,
+                errorBuilder: (ctx, err, stack) => _placeholder(err),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(10),
@@ -484,13 +501,7 @@ class _SearchResultCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: const [
-                      Icon(Icons.star, color: Colors.amber, size: 16),
-                      SizedBox(width: 4),
-                      Text('4.4  •  12,534', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
+                  ShopRating(shopId: shopId),
                 ],
               ),
             ),
@@ -500,8 +511,33 @@ class _SearchResultCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() => Container(
+  Widget _placeholder(Object? error) => Container(
     color: Colors.grey[300],
-    child: const Center(child: Icon(Icons.image_not_supported)),
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.image_not_supported),
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                error.toString(),
+                style: const TextStyle(fontSize: 8, color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          if (error == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Data Keys:\n${debugData.keys.join(', ')}\nphotos: ${debugData['photos']}\nprimaryPhoto: ${debugData['primaryPhoto']}',
+                style: const TextStyle(fontSize: 7, color: Colors.blue),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
+      )
+    ),
   );
 }

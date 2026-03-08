@@ -4,6 +4,9 @@ import 'package:geolocator/geolocator.dart'; // Import Geolocator
 import 'dart:math' show cos, sqrt, asin;
 import '../core/constants/app_routes.dart';
 import '../core/constants/app_colors.dart';
+import '../core/utils/shop_image_helper.dart';
+import '../widgets/shop_async_image.dart';
+import '../widgets/shop_rating.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -25,12 +28,103 @@ class _HomeScreenState extends State<HomeScreen> {
   static String _selectedDistance = '5km';
   
   static String? _selectedCategory;
-  Position? _userPosition;
+  static Position? _userPosition;
+
+  // Pagination Variables
+  final ScrollController _scrollController = ScrollController();
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _shops = [];
+  DocumentSnapshot? _lastDocument;
+  bool _isLoadingInitial = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  static const int _perPage = 10;
 
   @override
   void initState() {
     super.initState();
-    _getUserLocation();
+    _scrollController.addListener(_onScroll);
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _getUserLocation();
+    await _fetchShops();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _fetchShops(loadMore: true);
+    }
+  }
+
+  Future<void> _fetchShops({bool loadMore = false}) async {
+    if (loadMore) {
+      setState(() => _isLoadingMore = true);
+    } else {
+      setState(() {
+        _isLoadingInitial = true;
+        _shops.clear();
+        _lastDocument = null;
+        _hasMore = true;
+      });
+    }
+
+    try {
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection('registered_shop_users');
+
+      if (_selectedCategory != null) {
+        query = query.where('subcategories', arrayContains: _selectedCategory);
+      }
+
+      // Add ordering if you have a reliable field to order by, 
+      // Firestore pagination REQUIRES ordering. We'll use document ID as a fallback,
+      // but if you have a 'createdAt' field, you should order by that.
+      query = query.orderBy(FieldPath.documentId).limit(_perPage);
+
+      if (loadMore && _lastDocument != null) {
+        query = query.startAfterDocument(_lastDocument!);
+      }
+
+      final snapshot = await query.get();
+      final docs = snapshot.docs;
+
+      if (docs.length < _perPage) {
+        _hasMore = false;
+      }
+
+      if (docs.isNotEmpty) {
+        _lastDocument = docs.last;
+      }
+
+      if (mounted) {
+        setState(() {
+          if (loadMore) {
+            _shops.addAll(docs);
+            _isLoadingMore = false;
+          } else {
+            _shops = docs;
+            _isLoadingInitial = false;
+          }
+        });
+      }
+    } catch (e) {
+      print("Error fetching shops: \$e");
+      if (mounted) {
+        setState(() {
+          _isLoadingInitial = false;
+          _isLoadingMore = false;
+        });
+      }
+    }
   }
 
   Future<void> _getUserLocation() async {
@@ -55,9 +149,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final pos = await Geolocator.getCurrentPosition();
-    setState(() {
-      _userPosition = pos;
-    });
+    if (mounted) {
+      setState(() {
+        _userPosition = pos;
+      });
+    }
   }
 
   // Haversine Formula
@@ -123,6 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: SafeArea(
           child: ListView(
+            controller: _scrollController,
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -163,7 +260,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: InputDecoration(
                         hintText: 'Search any Shop Nearby...',
                         prefixIcon: const Icon(Icons.search),
-                        suffixIcon: const Icon(Icons.mic_none),
                         filled: true,
                         fillColor: AppColors.inputFill,
                         border: OutlineInputBorder(
@@ -244,10 +340,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     final cat = _categories[i];
                     final selected = _selectedCategory == cat['name'];
                     return InkWell(
-                      onTap: () => setState(() {
-                        _selectedCategory =
-                            selected ? null : (cat['name'] as String);
-                      }),
+                      onTap: () {
+                        setState(() {
+                          _selectedCategory = selected ? null : (cat['name'] as String);
+                        });
+                        _fetchShops(); // Refresh list on category change
+                      },
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -287,7 +385,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: _categories.length,
                 ),
               ),
-              const SizedBox(height: 16),
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('banners')
@@ -296,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       child: SizedBox(
                           height: 200,
                           child: Center(child: CircularProgressIndicator())),
@@ -305,103 +402,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   final docs = snapshot.data?.docs ?? [];
                   if (docs.isEmpty) {
-                    // Fallback to original static banner
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.orange, Colors.deepOrange],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              right: 10,
-                              bottom: 30,
-                              child: Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withOpacity(0.2),
-                                ),
-                                child: const Icon(
-                                  Icons.storefront_outlined,
-                                  size: 60,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      'ELECTRONICS HUB',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'Grand Opening\nSale Live!',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.deepOrange,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 0),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Visit Shop',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return const SizedBox(height: 16);
                   }
 
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.only(top: 16, bottom: 16, left: 16, right: 16),
                     child: SizedBox(
                       height: 200,
                       child: PageView.builder(
@@ -429,7 +434,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -448,7 +452,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.pushNamed(context, AppRoutes.search);
+                      },
                       child: const Text('View all'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
@@ -460,38 +466,23 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: _selectedCategory == null
-                      ? FirebaseFirestore.instance
-                          .collection('shop_users')
-                          .snapshots()
-                      : FirebaseFirestore.instance
-                          .collection('registered_shop_users')
-                          .where(
-                            'subcategories',
-                            arrayContains: _selectedCategory,
-                          )
-                          .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                child: Builder(
+                  builder: (context) {
+                    if (_isLoadingInitial) {
                       return const Padding(
                         padding: EdgeInsets.all(24),
                         child: Center(child: CircularProgressIndicator()),
                       );
                     }
-                    final docs = snapshot.data?.docs ?? [];
 
-                    // Filter by distance if User Position is available
                     List<QueryDocumentSnapshot<Map<String, dynamic>>>
-                        filteredDocs = docs;
-                    // UNCOMMENT FOR PRODUCTION: Distance Filtering Logic
+                        filteredDocs = _shops;
+
+                    // Distance Filtering Logic
                     if (_userPosition != null) {
                       final radiusKm = _getFilterRadiusInKm();
-                      filteredDocs = docs.where((doc) {
+                      filteredDocs = _shops.where((doc) {
                         final data = doc.data();
-                        
-                        // Parse Lat/Lng from address map
-                        // Structure: address: { lat: "...", lng: "..." }
                         try {
                           final address = data['address'] as Map<String, dynamic>?;
                           if (address == null) return false;
@@ -543,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 data['companylegalName'] ??
                                 'Shop')
                             .toString();
-                        final imageUrl = data['imageUrl'] as String?;
+                        final imageUrl = ShopImageHelper.getImage(data);
                         return _ShopProductCard(
                           shopId: id,
                           title: name,
@@ -554,6 +545,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ),
+              if (_isLoadingMore)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               const SizedBox(height: 24),
             ],
           ),
@@ -590,13 +586,11 @@ class _ShopProductCard extends StatelessWidget {
           children: [
             AspectRatio(
               aspectRatio: 4 / 3,
-              child: imageUrl != null && imageUrl!.isNotEmpty
-                  ? Image.network(
-                      imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    )
-                  : _placeholder(),
+              child: ShopAsyncImage(
+                shopId: shopId,
+                fit: BoxFit.cover,
+                errorBuilder: (ctx, err, stack) => _placeholder(),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(10),

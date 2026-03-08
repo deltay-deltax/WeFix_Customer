@@ -85,7 +85,7 @@ class ShopDetailsScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  _TextField(hint: 'Pickup Address'),
+                  _TextField(hint: ' Address'),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,

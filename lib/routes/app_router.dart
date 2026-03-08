@@ -12,7 +12,6 @@ import '../views/warranty_history_screen.dart';
 import '../views/warranty_detail_screen.dart';
 import '../views/notifications_screen.dart';
 import '../views/nearby_shop_screen.dart';
-import '../views/shop_details_screen.dart';
 import '../views/search_screen.dart';
 import '../views/product_details_screen.dart';
 import '../views/request_service_screen.dart';
@@ -20,6 +19,8 @@ import '../views/edit_profile_screen.dart';
 import '../views/home_screen.dart';
 import '../views/raise_complaint_screen.dart';
 import '../views/my_complaints_screen.dart';
+import '../views/manage_addresses_screen.dart';
+import '../views/add_address_screen.dart';
 
 class AppRouter {
   static Route<dynamic> generate(RouteSettings settings) {
@@ -60,9 +61,6 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => NotificationsScreen());
       case AppRoutes.nearbyShops:
         return MaterialPageRoute(builder: (_) => NearbyShopsScreen());
-      case AppRoutes.shopDetails:
-        final args = settings.arguments;
-        return MaterialPageRoute(builder: (_) => ShopDetailsScreen(args: args));
       case AppRoutes.search:
         return MaterialPageRoute(builder: (_) => const SearchScreen());
       case AppRoutes.productDetails:
@@ -88,6 +86,15 @@ class AppRouter {
       case AppRoutes.myComplaints:
         return MaterialPageRoute(
           builder: (_) => const MyComplaintsScreen(),
+        );
+      case AppRoutes.manageAddresses:
+        final bool isSelectionMode = settings.arguments == true;
+        return MaterialPageRoute(
+          builder: (_) => ManageAddressesScreen(isSelectionMode: isSelectionMode),
+        );
+      case AppRoutes.addAddress:
+        return MaterialPageRoute(
+          builder: (_) => const AddAddressScreen(),
         );
       default:
         return MaterialPageRoute(builder: (_) => HomeScreen());

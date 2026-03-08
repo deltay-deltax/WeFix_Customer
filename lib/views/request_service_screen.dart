@@ -201,11 +201,30 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
               keyboardType: TextInputType.phone,
               style: _FieldStyle.blueOnFocus,
             ),
-            _field(
-              'Pickup Address',
-              pickupCtrl,
-              maxLines: 3,
-              style: _FieldStyle.blueOnFocus,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: InkWell(
+                onTap: () async {
+                  final selectedAddress = await Navigator.pushNamed(
+                    context, 
+                    AppRoutes.manageAddresses,
+                    arguments: true, // isSelectionMode = true
+                  );
+                  if (selectedAddress != null && selectedAddress is String) {
+                    setState(() {
+                      pickupCtrl.text = selectedAddress;
+                    });
+                  }
+                },
+                child: IgnorePointer(
+                  child: _field(
+                    'Pickup Address',
+                    pickupCtrl,
+                    maxLines: 3,
+                    style: _FieldStyle.blueOnFocus,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
