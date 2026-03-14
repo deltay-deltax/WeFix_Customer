@@ -108,7 +108,7 @@ class TermsOfUseScreen extends StatelessWidget {
             number: '10',
             title: 'Contact',
             body:
-                'If you have questions about these Terms, please contact us:\n\nEmail: support@wekeep.com\nPhone: +91 98767 87653\nAddress: CMR Institute of Technology, Bengaluru, India',
+                'If you have questions about these Terms, please contact us:\n\nEmail: wefix.info25@gmail.com\nPhone: +91 86183 80961\nAddress: CMR Institute of Technology, Bengaluru, India',
             isLast: true,
           ),
           const SizedBox(height: 32),
