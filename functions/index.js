@@ -408,3 +408,148 @@ exports.onRequestStatusChanged = functions.firestore
 
         return null;
     });
+
+// ── 4. Borzo Business API Integration ─────────────────────────────────────────
+
+const BORZO_API_URL = "https://robotapitest-in.borzodelivery.com/api/business/1.6";
+
+function getBorzoToken() {
+    const borzoConfig = { auth_token: process.env.BORZO_AUTH_TOKEN };
+    if (!borzoConfig || !borzoConfig.auth_token) {
+        throw new functions.https.HttpsError(
+            "failed-precondition",
+            "Missing 'borzo.auth_token' in functions.config()."
+        );
+    }
+    return borzoConfig.auth_token;
+}
+
+exports.calculateBorzoOrder = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "User must be logged in");
+    }
+
+    const { points, matter, total_weight_kg, type } = data;
+    if (!points || points.length < 2) {
+        throw new functions.https.HttpsError("invalid-argument", "At least 2 points are required for calculation.");
+    }
+
+    const token = getBorzoToken();
+
+    try {
+        const response = await fetch(`${BORZO_API_URL}/calculate-order`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-DV-Auth-Token": token,
+            },
+            body: JSON.stringify({
+                type: type || "standard",
+                matter: matter || "Electronics / Repair Item",
+                total_weight_kg: total_weight_kg || 1,
+                points: points,
+            }),
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.is_successful) {
+            functions.logger.error("Borzo Calc Error:", result);
+            throw new functions.https.HttpsError("internal", "Borzo API calculation failed.");
+        }
+
+        return result.order;
+    } catch (error) {
+        functions.logger.error("Error calling Borzo calculate-order:", error);
+        throw new functions.https.HttpsError("internal", error.message);
+    }
+});
+
+exports.createBorzoOrder = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "User must be logged in");
+    }
+
+    const { points, matter, total_weight_kg, vehicle_type_id, type, requestId, shopId } = data;
+    if (!points || points.length < 2) {
+        throw new functions.https.HttpsError("invalid-argument", "At least 2 points are required.");
+    }
+
+    const token = getBorzoToken();
+
+    try {
+        const response = await fetch(`${BORZO_API_URL}/create-order`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-DV-Auth-Token": token,
+            },
+            body: JSON.stringify({
+                type: type || "standard",
+                matter: matter || "Electronics / Repair Item",
+                total_weight_kg: total_weight_kg || 1,
+                vehicle_type_id: vehicle_type_id || 8, // 8 = motorbike
+                is_client_notification_enabled: true,
+                is_contact_person_notification_enabled: true,
+                points: points,
+            }),
+        });
+
+        const result = await response.json();
+        if (!response.ok || !result.is_successful) {
+            functions.logger.error("Borzo Create Error:", result);
+            throw new functions.https.HttpsError("internal", "Borzo API create-order failed: " + JSON.stringify(result));
+        }
+
+        const order = result.order;
+
+        if (requestId && shopId) {
+            await db.collection("shop_users").doc(shopId).collection("requests").doc(requestId).update({
+                borzoOrderId: order.order_id,
+                borzoTrackingUrl: order.points[0]?.tracking_url || null,
+                borzoStatus: order.status,
+            });
+        }
+
+        return order;
+    } catch (error) {
+        functions.logger.error("Error calling Borzo create-order:", error);
+        throw new functions.https.HttpsError("internal", error.message);
+    }
+});
+
+exports.borzoWebhook = functions.https.onRequest(async (req, res) => {
+    if (req.method !== "POST") {
+        return res.status(405).send("Method Not Allowed");
+    }
+
+    const data = req.body;
+    if (!data || !data.order || !data.order.order_id) {
+        return res.status(400).send("Invalid Payload");
+    }
+
+    const orderId = data.order.order_id;
+    const newStatus = data.order.status;
+
+    try {
+        const requestsSnap = await db.collectionGroup("requests").where("borzoOrderId", "==", orderId).get();
+        if (requestsSnap.empty) {
+            functions.logger.log(`No matching request found for Borzo Order ID: ${orderId}`);
+            return res.status(200).send("OK");
+        }
+
+        const batch = db.batch();
+        requestsSnap.forEach((doc) => {
+            batch.update(doc.ref, {
+                borzoStatus: newStatus,
+                borzoStatusDescription: data.order.status_description || "Updated"
+            });
+        });
+
+        await batch.commit();
+        functions.logger.log(`Updated status for Borzo Order ID: ${orderId} to ${newStatus}`);
+        return res.status(200).send("OK");
+    } catch (error) {
+        functions.logger.error("Webhook processing error:", error);
+        return res.status(500).send("Internal Server Error");
+    }
+});

@@ -7,6 +7,7 @@ import '../core/constants/app_routes.dart';
 import '../data/models/service_model.dart';
 import 'service_request_detail_screen.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../services/borzo_service.dart';
 
 class ServiceUpdateScreen extends StatefulWidget {
   @override
@@ -154,6 +155,23 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
     } catch (e) {
       debugPrint('Error: $e');
     }
+  }
+
+  void _showAcceptBottomSheet(ServiceRequestModel req) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: _AcceptRequestBottomSheet(
+            req: req,
+            onStatusUpdate: (status) => _updateStatus(req, status),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -419,7 +437,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                           foregroundColor: Colors.green,
                           side: const BorderSide(color: Colors.green),
                         ),
-                        onPressed: () => _updateStatus(req, 'in_progress'),
+                        onPressed: () => _showAcceptBottomSheet(req),
                         child: const Text('Accept'),
                       ),
                     ),
@@ -770,3 +788,226 @@ String _mon(int m) => const [
       'Nov',
       'Dec',
     ][m - 1];
+
+class _AcceptRequestBottomSheet extends StatefulWidget {
+  final ServiceRequestModel req;
+  final Function(String) onStatusUpdate;
+
+  const _AcceptRequestBottomSheet(
+      {Key? key, required this.req, required this.onStatusUpdate})
+      : super(key: key);
+
+  @override
+  State<_AcceptRequestBottomSheet> createState() =>
+      _AcceptRequestBottomSheetState();
+}
+
+class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
+  bool _isLoadingCost = true;
+  String? _deliveryCost;
+  String? _errorMessage;
+  int _selectedOption = 0; // 0: Self, 1: Courier
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateCost();
+  }
+
+  Future<void> _calculateCost() async {
+    try {
+      final shopDoc = await FirebaseFirestore.instance
+          .collection('registered_shop_users')
+          .doc(widget.req.shopId)
+          .get();
+          
+      String shopAddress = widget.req.shopName;
+      String shopPhone = '';
+      if (shopDoc.exists && shopDoc.data() != null) {
+        final data = shopDoc.data() as Map<String, dynamic>;
+        shopAddress = data['address'] ?? data['addressLocality'] ?? widget.req.shopName;
+        shopPhone = data['phone'] ?? data['phoneNumber'] ?? '';
+      }
+
+      final res = await BorzoService().calculateOrder(
+        userAddress: widget.req.pickupAddress,
+        userName: widget.req.yourName,
+        userPhone: widget.req.phone,
+        shopAddress: shopAddress,
+        shopName: widget.req.shopName,
+        shopPhone: shopPhone,
+      );
+      if (mounted) {
+        setState(() {
+          _deliveryCost = res['payment_amount']?.toString() ?? 'N/A';
+          _isLoadingCost = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoadingCost = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickDateTime() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+    );
+    if (d == null) return;
+    final t = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+    );
+    if (t == null) return;
+    setState(() {
+      _selectedDate = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+      _selectedTime = t;
+    });
+  }
+
+  Future<void> _confirm() async {
+    if (_selectedOption == 1) {
+      if (_selectedDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a pickup Date & Time')),
+        );
+        return;
+      }
+      setState(() => _isSubmitting = true);
+      try {
+        final shopDoc = await FirebaseFirestore.instance
+            .collection('registered_shop_users')
+            .doc(widget.req.shopId)
+            .get();
+        String shopAddress = widget.req.shopName;
+        String shopPhone = '';
+        if (shopDoc.exists && shopDoc.data() != null) {
+          final data = shopDoc.data() as Map<String, dynamic>;
+          shopAddress = data['address'] ?? data['addressLocality'] ?? widget.req.shopName;
+          shopPhone = data['phone'] ?? data['phoneNumber'] ?? '';
+        }
+
+        await BorzoService().createOrder(
+          userAddress: widget.req.pickupAddress,
+          userName: widget.req.yourName,
+          userPhone: widget.req.phone,
+          shopAddress: shopAddress,
+          shopName: widget.req.shopName,
+          shopPhone: shopPhone,
+          requestId: widget.req.id,
+          shopId: widget.req.shopId,
+          requiredStartDatetime: _selectedDate!.toIso8601String(),
+        );
+        widget.onStatusUpdate('in_progress');
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to book Borzo Courier: $e')),
+        );
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
+    } else {
+      widget.onStatusUpdate('in_progress');
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Confirm Request',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          _isLoadingCost
+              ? const Center(child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ))
+              : _errorMessage != null
+                  ? Text('Could not load delivery options: $_errorMessage', style: const TextStyle(color: Colors.red))
+                  : Column(
+                      children: [
+                        RadioListTile<int>(
+                          value: 0,
+                          groupValue: _selectedOption,
+                          onChanged: (v) => setState(() => _selectedOption = v!),
+                          title: const Text('Drop Self'),
+                          subtitle: const Text('I will drop the device myself'),
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: Colors.blue.shade600,
+                        ),
+                        RadioListTile<int>(
+                          value: 1,
+                          groupValue: _selectedOption,
+                          onChanged: (v) => setState(() => _selectedOption = v!),
+                          title: Text('Drop by Courier (₹$_deliveryCost)'),
+                          subtitle: const Text('A Borzo courier will pick it up'),
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: Colors.blue.shade600,
+                        ),
+                      ],
+                    ),
+          if (_selectedOption == 1) ...[
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+              leading: Icon(Icons.calendar_today, color: Colors.blue.shade600),
+              title: Text(_selectedDate == null
+                  ? 'Select Pickup Time'
+                  : DateFormat('MMM d, yyyy - h:mm a').format(_selectedDate!)),
+              onTap: _pickDateTime,
+            ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: _isSubmitting || _isLoadingCost ? null : _confirm,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text('Confirm & Accept',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

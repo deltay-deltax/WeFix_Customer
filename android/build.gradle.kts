@@ -9,7 +9,7 @@ subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
             extensions.configure<com.android.build.gradle.BaseExtension> {
-                compileSdkVersion(35)
+                compileSdkVersion(36)
             }
         }
     }
@@ -17,6 +17,10 @@ subprojects {
     configurations.all {
         resolutionStrategy {
             force("com.google.android.material:material:1.10.0")
+            force("androidx.core:core-ktx:1.13.1")
+            force("androidx.core:core:1.13.1")
+            force("androidx.browser:browser:1.8.0")
+            force("androidx.activity:activity:1.9.0")
         }
     }
 }

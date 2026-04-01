@@ -1,0 +1,1668 @@
+{
+	"info": {
+		"_postman_id": "2ab8dea9-700a-476d-91b9-3bc2fb8d95cd",
+		"name": "Business API Test Collection",
+		"description": "## _**Please paste your Auth token from API Test Cabinet into Variables tab in this Collection**_\n\n## [Complete Business API Documentation](https://borzodelivery.com/in/business-api/doc)\n\n## **Placing an Order**\n\nThe creation scheme for the **standard** order type consists of 2 stages:\n\n1. Delivery cost calculation and displaying the result to the user.  \n    To do this, use the [/calculate-order](https://borzodelivery.com/in/business-api/doc#calculate-order) method with the same data that will be used when creating the order. At this stage, only recipient's contact data could be missed(data within the fields of the `contact_person` object) and will not affect the calculation result. The shipping cost will be returned in the `payment_amount` field.  \n    The resulting errors will be shown in the `warnings` block, but the price will be returned even if there are critical errors.\n    \n2. Placing an order for delivery.  \n    To create an order, use the [/create-order](https://borzodelivery.com/in/business-api/doc#create-order) method, specifying the data in all parameters designated as mandatory. Please note that in the list of `points` it is impossible to pass less than 2 points, since the first point must be the pick-up point.  \n    At this stage, all errors are critical and prevent the creation of an order. The list of errors is returned in the `errors` block. After successfully placing an order, it will be displayed in your personal Borzo account.\n    \n\nTo create a **endofday** order please follow the steps below:\n\n1. Delivery cost calculation and displaying the result to the user.  \n    To do this, use the [/calculate-order](https://apitest.borzodelivery.com/in/business-api/doc#calculate-order) method, similar to the standard scheme. EndOfDay order can only have 2 points. It is also necessary to pass the `type` parameter with the endofday value. Please note that in this case the `required_start_datetime` and `required_finish_datetime` parameters at the points are not allowed.  \n    The shipping cost will be returned in the `payment_amount` field.\n    \n2. Placing an order for delivery.  \n    Use the [/create-order](https://apitest.borzodelivery.com/in/business-api/doc#create-order) method to create a endofday order and specify the data in all mandatory parameters. Any errors when creating an order are critical and prevent its placement. The list of errors is returned in the `errors` block.  \n    After successfully placing an order, you will be able to see it in your personal Borzo account.\n    \n\n## Cash on delivery (COD) service\n\nTo enable COD feature, you should pass the following parameters during order placement:\n\n- `is_cod_cash_voucher_required`. Belongs to delivery points. Should be set as true to enable the option.\n    \n\n## How to track order/delivery\n\nThere are two options for tracking order/delivery changes. Automatic via callbacks and manual via request.\n\n**Automatic method**  \nWe have different callbacks for deliveries and orders for more detailed tracking and completeness of information. In case of any changes in these entities, the system automatically sends callbacks with the necessary information to the Callback URL specified in the personal account on the \"Integration\" tab. The callback token that is used to calculate signatures is also the same for both types of callbacks. However, the format of [callbacks on orders](https://borzodelivery.com/in/business-api/doc#order-callback) and [delivery callbacks](https://borzodelivery.com/in/business-api/doc#delivery-callback) varies, which is important to consider when receiving information via this method. If it is impossible to deliver a callback to the specified URL (HTTP code 4xx-5xx), then callbacks are re-sent at an increasing interval until a positive response is received (HTTP code 2xx-3xx), or until 24 hours have passed from the first failed attempt.\n\n**Manual method**  \nManual method allows you to get updated information anytime upon request. You can find detailed description about sending status request on [orders](https://borzodelivery.com/in/business-api/doc#orders) and on [deliveries](https://borzodelivery.com/in/business-api/doc#deliveries).\n\n### Notification about order and delivery changes\n\nYou may enter a Callback URL in your [Personal cabinet](https://borzodelivery.com/in/cabinet/integration) and we will send notifications about order changes to that URL.\n\nData will be sent via HTTP method POST in JSON format and UTF-8 encoding.\n\n## Possible Errors\n\n- **unexpected_error**\n    \n    Unexpected error. Please let us know at [api.in@borzodelivery.com](https://mailto:api.in@borzodelivery.com).\n    \n- **invalid_api_version**\n    \n    Unknown API version. Please use the latest version written in [API Documentation](https://borzodelivery.com/in/business-api/doc#overview)\n    \n- **required_api_upgrade**\n    \n    Requested API version was discontinued. You should use the latest version instead.\n    \n- **requests_limit_exceeded**\n    \n    You have reached an API usage limit.\n    \n    Limits are: 100 requests per minute, 5 000 requests per 24 hours.\n    \n- **required_auth_token**\n    \n    `X-DV-Auth-Token` header is missing from the request.\n    \n- **invalid_auth_token**\n    \n    `X-DV-Auth-Token` you are sending is invalid.\n    \n- **required_method_get**\n    \n    HTTP method GET is required.\n    \n- **required_method_post**\n    \n    HTTP method POST is required.\n    \n- **invalid_post_json**\n    \n    POST request body must be in JSON format.\n    \n- **invalid_parameters**\n    \n    Request parameters contain errors. Look at `parameter_errors` response field for details.\n    \n- **unapproved_contract**\n    \n    Your agreement is not approved yet (for legal entities).\n    \n- **service_unavailable**\n    \n    Our service is temporarily unavailable. Please try again later.\n    \n- **invalid_api_method**\n    \n    Unknown API method was requested.\n    \n- **buyout_not_allowed**\n    \n    You do not have access to buyout feature.\n    \n- **insufficient_balance_for_buyout**\n    \n    You do not have enough money for buyout.\n    \n- **order_cannot_be_edited**\n    \n    Order cannot be edited due to it's status or other reasons.\n    \n- **order_cannot_be_canceled**\n    \n    Order cannot be canceled due to it's status or other reasons.\n    \n- **insufficient_balance**\n    \n    Your balance is too low (for legal entities).\n    \n- **buyout_amount_limit_exceeded**\n    \n    Total buyout amount in your active orders is too large. You do not have sufficient balance / credit limit to place the new order.\n    \n- **route_not_found**\n    \n    Route not found. Please let tech support know at [api.in@borzodelivery.com](https://mailto:api.in@borzodelivery.com).\n    \n- **total_payment_amount_limit_exceeded**\n    \n    Exceeded maximum order price.\n    \n- **order_is_duplicate**\n    \n    Duplicate order rejected\n    \n- **insufficient_funds**\n    \n    Insufficient funds on your bank card\n    \n- **card_payment_failed**\n    \n    Bank card payment failed\n    \n- **impossible_delivery_fee_calculation**\n    \n    Can't calculate delivery price. Please let tech support know at [api.in@borzodelivery.com](https://mailto:api.in@borzodelivery.com).\n    \n- **tax_retension_limit**\n    \n    The order must be paid by balance",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "46687720"
+	},
+	"item": [
+		{
+			"name": "calculate-order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n        \r\n      },\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    }\r\n  ]\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/calculate-order",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"calculate-order"
+					]
+				},
+				"description": "Use this method to calculate order prices and validate parameters before actually placing the order. It is possible to calculate an incomplete order, but such calculations may be imprecise.\n\nIn response to an empty request this method will respond with minimal order price."
+			},
+			"response": [
+				{
+					"name": "calculateOrder_success",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n        \r\n      },\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/calculate-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"calculate-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:05:47 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": null,\n        \"order_name\": null,\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T15:35:47+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food\",\n        \"total_weight_kg\": 3,\n        \"is_client_notification_enabled\": false,\n        \"is_contact_person_notification_enabled\": false,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": null,\n                \"delivery_id\": null,\n                \"client_order_id\": null,\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T15:35:47+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": null,\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": null,\n                \"delivery_id\": null,\n                \"client_order_id\": null,\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T15:35:47+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": null,\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            }\n        ],\n        \"payment_amount\": \"55.00\",\n        \"delivery_fee_amount\": \"55.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"0.00\",\n        \"insurance_fee_amount\": \"0.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    },\n    \"warnings\": [],\n    \"parameter_warnings\": null\n}"
+				},
+				{
+					"name": "calculateOrder_with_warnings",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "{{AuthToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"points\": [\r\n    {\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n        \r\n      },\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/calculate-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"calculate-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:10:15 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": null,\n        \"order_name\": null,\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T15:40:15+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food\",\n        \"total_weight_kg\": 3,\n        \"is_client_notification_enabled\": false,\n        \"is_contact_person_notification_enabled\": false,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": null,\n                \"delivery_id\": null,\n                \"client_order_id\": null,\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T15:40:15+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": null\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": null,\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            }\n        ],\n        \"payment_amount\": null,\n        \"delivery_fee_amount\": null,\n        \"weight_fee_amount\": null,\n        \"insurance_amount\": \"0.00\",\n        \"insurance_fee_amount\": null,\n        \"loading_fee_amount\": null,\n        \"money_transfer_fee_amount\": null,\n        \"promo_code_discount_amount\": null,\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": null,\n        \"return_fee_amount\": null,\n        \"waiting_fee_amount\": null,\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    },\n    \"warnings\": [\n        \"invalid_parameters\"\n    ],\n    \"parameter_warnings\": {\n        \"points\": [\n            {\n                \"address\": [\n                    \"required\"\n                ]\n            },\n            {\n                \"contact_person\": {\n                    \"phone\": [\n                        \"required\"\n                    ]\n                }\n            }\n        ]\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "create-order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"vehicle_type_id\": \"8\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"insurance_amount\": \"500.00\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n        \r\n      },\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912,\r\n    \"client_order_id\": \"99618\"\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733,\r\n    \"client_order_id\": \"99618\"   \r\n    }\r\n  ]\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"create-order"
+					]
+				},
+				"description": "This API method creates a new delivery order.\n\n##### [<b>Order Types</b>](https://borzodelivery.com/in/business-api/doc#order-types)\n\n##### [Vehicle types](https://borzodelivery.com/in/business-api/doc#vehicle-types)\n\n##### [Payment methods](https://borzodelivery.com/in/business-api/doc#payment-methods)"
+			},
+			"response": [
+				{
+					"name": "create-order single DropOff point example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"vehicle_type_id\": \"8\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"insurance_amount\": \"500.00\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n      },\r\n    \"client_order_id\": \"99618\",\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"client_order_id\": \"99618\",\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"create-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:02:45 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263042,\n        \"order_name\": \"63042\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T15:32:44+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food\",\n        \"total_weight_kg\": 3,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576663,\n                \"delivery_id\": null,\n                \"client_order_id\": \"99618\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T15:32:44+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGE36LI71MSKIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576664,\n                \"delivery_id\": 180033,\n                \"client_order_id\": \"99618\",\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T15:32:44+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG4DX72T36K5IN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            }\n        ],\n        \"payment_amount\": \"60.00\",\n        \"delivery_fee_amount\": \"55.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"500.00\",\n        \"insurance_fee_amount\": \"5.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				},
+				{
+					"name": "create-order multiple DropOff point example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "{{AuthToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food, medicine\",\r\n  \"vehicle_type_id\": \"8\",\r\n  \"total_weight_kg\": \"4\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n       \"client_order_id\": \"37879\",\r\n       \"note\": \"pickup-location,Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"        \r\n      },\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"client_order_id\": \"37880\",\r\n      \"note\": \"dropoff-location,Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    },\r\n     {\r\n      \"address\": \"Sector C, Sector 56, Noida, Uttar Pradesh 201301\",\r\n      \"client_order_id\": \"37881\",\r\n      \"note\": \"dropoff-location,Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Monika Sharma\",\r\n        \"phone\": \"5563214566\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    },\r\n    {\r\n      \"address\": \"Amarpali Silicon City, Sector 76, Noida, Uttar Pradesh, 201303 \",\r\n      \"client_order_id\": \"37881\",\r\n      \"note\": \"Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Vinod Sharma\",\r\n        \"phone\": \"5563214566\"\r\n      },\r\n    \"latitude\":28.568283,\r\n    \"longitude\":77.379676    \r\n    }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"create-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 11:53:52 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263139,\n        \"order_name\": \"63139\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T17:23:48+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food, medicine\",\n        \"total_weight_kg\": 4,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576862,\n                \"delivery_id\": null,\n                \"client_order_id\": \"37879\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T19:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"pickup-location,Note for Courier\",\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG9F3P59Z2JFIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576863,\n                \"delivery_id\": 180139,\n                \"client_order_id\": \"37880\",\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T20:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"dropoff-location,Note for Courier\",\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGGT62SAWFHHIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576864,\n                \"delivery_id\": 180140,\n                \"client_order_id\": \"37881\",\n                \"address\": \"Sector C, Sector 56, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T20:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Monika Sharma\",\n                    \"phone\": \"915563214566\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"dropoff-location,Note for Courier\",\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGF13APKJ2IDIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576865,\n                \"delivery_id\": 180141,\n                \"client_order_id\": \"37881\",\n                \"address\": \"Amarpali Silicon City, Sector 76, Noida, Uttar Pradesh, 201303\",\n                \"latitude\": \"28.568283\",\n                \"longitude\": \"77.379676\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T21:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Vinod Sharma\",\n                    \"phone\": \"915563214566\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"Note for Courier\",\n                \"previous_point_driving_distance_meters\": 9839,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGGS15R4NWJ9IN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            }\n        ],\n        \"payment_amount\": \"151.00\",\n        \"delivery_fee_amount\": \"151.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"0.00\",\n        \"insurance_fee_amount\": \"0.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "create-order endofday",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"type\": \"endofday\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"insurance_amount\": \"500.00\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n        \r\n      },\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912,\r\n    \"client_order_id\": \"99618\"\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733,\r\n    \"client_order_id\": \"99618\"   \r\n    }\r\n  ]\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"create-order"
+					]
+				},
+				"description": "This API method creates a new delivery order.\n\n##### [<b>Order Types</b>](https://borzodelivery.com/in/business-api/doc#order-types)\n\n##### [Vehicle types](https://borzodelivery.com/in/business-api/doc#vehicle-types)\n\n##### [Payment methods](https://borzodelivery.com/in/business-api/doc#payment-methods)"
+			},
+			"response": [
+				{
+					"name": "create-order single DropOff point example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"vehicle_type_id\": \"8\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"insurance_amount\": \"500.00\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n      },\r\n    \"client_order_id\": \"99618\",\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"client_order_id\": \"99618\",\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"create-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:02:45 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263042,\n        \"order_name\": \"63042\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T15:32:44+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food\",\n        \"total_weight_kg\": 3,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576663,\n                \"delivery_id\": null,\n                \"client_order_id\": \"99618\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T15:32:44+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGE36LI71MSKIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576664,\n                \"delivery_id\": 180033,\n                \"client_order_id\": \"99618\",\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T15:32:44+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG4DX72T36K5IN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            }\n        ],\n        \"payment_amount\": \"60.00\",\n        \"delivery_fee_amount\": \"55.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"500.00\",\n        \"insurance_fee_amount\": \"5.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				},
+				{
+					"name": "create-order multiple DropOff point example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "{{AuthToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food, medicine\",\r\n  \"vehicle_type_id\": \"8\",\r\n  \"total_weight_kg\": \"4\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n       \"client_order_id\": \"37879\",\r\n       \"note\": \"pickup-location,Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"        \r\n      },\r\n    \"latitude\":28.57908,\r\n    \"longitude\":77.31912\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"client_order_id\": \"37880\",\r\n      \"note\": \"dropoff-location,Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    },\r\n     {\r\n      \"address\": \"Sector C, Sector 56, Noida, Uttar Pradesh 201301\",\r\n      \"client_order_id\": \"37881\",\r\n      \"note\": \"dropoff-location,Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Monika Sharma\",\r\n        \"phone\": \"5563214566\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    },\r\n    {\r\n      \"address\": \"Amarpali Silicon City, Sector 76, Noida, Uttar Pradesh, 201303 \",\r\n      \"client_order_id\": \"37881\",\r\n      \"note\": \"Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Vinod Sharma\",\r\n        \"phone\": \"5563214566\"\r\n      },\r\n    \"latitude\":28.568283,\r\n    \"longitude\":77.379676    \r\n    }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"create-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 11:53:52 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263139,\n        \"order_name\": \"63139\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T17:23:48+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food, medicine\",\n        \"total_weight_kg\": 4,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576862,\n                \"delivery_id\": null,\n                \"client_order_id\": \"37879\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T19:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"pickup-location,Note for Courier\",\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG9F3P59Z2JFIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576863,\n                \"delivery_id\": 180139,\n                \"client_order_id\": \"37880\",\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T20:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"dropoff-location,Note for Courier\",\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGGT62SAWFHHIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576864,\n                \"delivery_id\": 180140,\n                \"client_order_id\": \"37881\",\n                \"address\": \"Sector C, Sector 56, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T20:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Monika Sharma\",\n                    \"phone\": \"915563214566\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"dropoff-location,Note for Courier\",\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGF13APKJ2IDIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576865,\n                \"delivery_id\": 180141,\n                \"client_order_id\": \"37881\",\n                \"address\": \"Amarpali Silicon City, Sector 76, Noida, Uttar Pradesh, 201303\",\n                \"latitude\": \"28.568283\",\n                \"longitude\": \"77.379676\",\n                \"required_start_datetime\": \"2024-10-14T17:23:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T21:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Vinod Sharma\",\n                    \"phone\": \"915563214566\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"Note for Courier\",\n                \"previous_point_driving_distance_meters\": 9839,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGGS15R4NWJ9IN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            }\n        ],\n        \"payment_amount\": \"151.00\",\n        \"delivery_fee_amount\": \"151.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"0.00\",\n        \"insurance_fee_amount\": \"0.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "create-order with packages details",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n       \"client_order_id\": \"37879\",\r\n       \"note\": \"Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n      },\r\n        \"latitude\":28.57908,\r\n        \"longitude\":77.31912,\r\n       \"packages\": \r\n            [\r\n                {                \r\n                \"ware_code\": true,\r\n                \"items_count\": 1,\r\n                \"item_payment_amount\": 950,\r\n                \"description\": \"Office Bag, Shirt\"\r\n\r\n            }\r\n            ]       \r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    }\r\n  ]\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"create-order"
+					]
+				},
+				"description": "This API method creates a new delivery order. Added packages details"
+			},
+			"response": [
+				{
+					"name": "create-order with packages detail example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"3\",\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true,\r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n       \"client_order_id\": \"37879\",\r\n       \"note\": \"Note for Courier\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n      },\r\n        \"latitude\":28.57908,\r\n        \"longitude\":77.31912,\r\n       \"packages\": \r\n            [\r\n                {                \r\n                \"ware_code\": true,\r\n                \"items_count\": 1,\r\n                \"item_payment_amount\": 950,\r\n                \"description\": \"Office Bag, Shirt\"\r\n\r\n            }\r\n            ]       \r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n    \"latitude\":28.583905,\r\n    \"longitude\":77.322733     \r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"create-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:04:35 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263043,\n        \"order_name\": \"63043\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T15:34:35+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food\",\n        \"total_weight_kg\": 3,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576665,\n                \"delivery_id\": null,\n                \"client_order_id\": \"37879\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T15:34:35+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"Note for Courier\",\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [\n                    {\n                        \"order_package_id\": 241,\n                        \"ware_code\": \"1\",\n                        \"description\": \"Office Bag, Shirt\",\n                        \"items_count\": \"1\",\n                        \"item_payment_amount\": \"950.00\",\n                        \"nomenclature_code\": null\n                    }\n                ],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGM9HZ44FFLDIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576666,\n                \"delivery_id\": 180034,\n                \"client_order_id\": null,\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T15:34:35+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGL2XZRKLWMKIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            }\n        ],\n        \"payment_amount\": \"55.00\",\n        \"delivery_fee_amount\": \"55.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"0.00\",\n        \"insurance_fee_amount\": \"0.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "create-order with COD",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"2\",\r\n  \"insurance_amount\":1000.0,\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true, \r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n      },\r\n      \"latitude\":28.57908,\r\n    \"longitude\":77.31912,\r\n      \"client_order_id\": \"99618\"\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n      \"latitude\":28.583905,\r\n       \"longitude\":77.322733,\r\n      \"client_order_id\": \"99618\",\r\n      \"taking_amount\": \"1250.00\",\r\n      \"is_cod_cash_voucher_required\": true\r\n    }\r\n  ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"create-order"
+					]
+				},
+				"description": "This API method creates a new delivery order.\n\nTo enable COD feature, you should pass the following parameters during order placement:\n\n- `is_cod_cash_voucher_required`. Belongs to delivery points. Should be set as true to enable the COD option.\n    \n\nPackages details are mandatory for COD orders"
+			},
+			"response": [
+				{
+					"name": "create-order COD example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"type\": \"standard\",\r\n  \"matter\": \"Food\",\r\n  \"total_weight_kg\": \"2\",\r\n  \"insurance_amount\":1000.0,\r\n  \"is_client_notification_enabled\": true,\r\n  \"is_contact_person_notification_enabled\": true, \r\n  \"points\": [\r\n    {\r\n      \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Sonia Singh\",\r\n        \"phone\": \"7988451542\"\r\n      },\r\n      \"latitude\":28.57908,\r\n    \"longitude\":77.31912,\r\n      \"client_order_id\": \"99618\"\r\n    },\r\n    {\r\n      \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\r\n      \"contact_person\": {\r\n        \"name\": \"Yash Sharma\",\r\n        \"phone\": \"6742127113\"\r\n      },\r\n      \"latitude\":28.583905,\r\n       \"longitude\":77.322733,\r\n      \"client_order_id\": \"99618\",\r\n      \"taking_amount\": \"1250.00\",\r\n      \"is_cod_cash_voucher_required\": true\r\n    }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/create-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"create-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:31:50 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263068,\n        \"order_name\": \"63068\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T16:01:48+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"new\",\n        \"status_description\": \"Created\",\n        \"matter\": \"Food\",\n        \"total_weight_kg\": 2,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576717,\n                \"delivery_id\": null,\n                \"client_order_id\": \"99618\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T16:01:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG66IJFRIIKYIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576718,\n                \"delivery_id\": 180061,\n                \"client_order_id\": \"99618\",\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T16:01:48+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T18:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"1250.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": true,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG4Y9WG3WHDGIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            }\n        ],\n        \"payment_amount\": \"102.50\",\n        \"delivery_fee_amount\": \"55.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"1000.00\",\n        \"insurance_fee_amount\": \"10.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"37.50\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "edit-order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"matter\": \"Document\",\r\n    \"order_id\": 263042\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/edit-order",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"edit-order"
+					]
+				},
+				"description": "This API method can be used to edit an order in statuses: `new`, `available`, `active` or `delayed` ([Order statuses](https://borzodelivery.com/in/business-api/doc#order-statuses))."
+			},
+			"response": [
+				{
+					"name": "edit-order example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"matter\": \"Document\",\r\n    \"order_id\": 263042\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/edit-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"edit-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:36:54 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263042,\n        \"order_name\": \"63042\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T15:32:44+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"available\",\n        \"status_description\": \"Available\",\n        \"matter\": \"Document\",\n        \"total_weight_kg\": 3,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576663,\n                \"delivery_id\": null,\n                \"client_order_id\": \"99618\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T15:32:44+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGE36LI71MSKIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576664,\n                \"delivery_id\": 180033,\n                \"client_order_id\": \"99618\",\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T15:32:44+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG4DX72T36K5IN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"planned\"\n                }\n            }\n        ],\n        \"payment_amount\": \"60.00\",\n        \"delivery_fee_amount\": \"55.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"500.00\",\n        \"insurance_fee_amount\": \"5.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "cancel-order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"order_id\": 259570\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/cancel-order",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"cancel-order"
+					]
+				},
+				"description": "You may cancel an order in statuses: `new`, `available`, `active` or `delayed` ([Order statuses](https://borzodelivery.com/in/business-api/doc#order-statuses)). If a courier has visited any addresses, the order cannot be canceled."
+			},
+			"response": [
+				{
+					"name": "cancel-order example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"order_id\": 263043\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/cancel-order",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"cancel-order"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 10:34:39 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"order\": {\n        \"type\": \"standard\",\n        \"order_id\": 263043,\n        \"order_name\": \"63043\",\n        \"vehicle_type_id\": 8,\n        \"created_datetime\": \"2024-10-14T15:34:35+05:30\",\n        \"finish_datetime\": null,\n        \"status\": \"canceled\",\n        \"status_description\": \"Cancelled via API\",\n        \"matter\": \"Food\",\n        \"total_weight_kg\": 3,\n        \"is_client_notification_enabled\": true,\n        \"is_contact_person_notification_enabled\": true,\n        \"loaders_count\": 0,\n        \"backpayment_details\": null,\n        \"points\": [\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576665,\n                \"delivery_id\": null,\n                \"client_order_id\": \"37879\",\n                \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.57908\",\n                \"longitude\": \"77.31912\",\n                \"required_start_datetime\": \"2024-10-14T15:34:35+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:00:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Sonia Singh\",\n                    \"phone\": \"917988451542\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": \"Note for Courier\",\n                \"previous_point_driving_distance_meters\": 0,\n                \"packages\": [\n                    {\n                        \"order_package_id\": 241,\n                        \"ware_code\": \"1\",\n                        \"description\": \"Office Bag, Shirt\",\n                        \"items_count\": \"1\",\n                        \"item_payment_amount\": \"950.00\",\n                        \"nomenclature_code\": null\n                    }\n                ],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGM9HZ44FFLDIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": null\n            },\n            {\n                \"point_type\": \"plain\",\n                \"point_id\": 576666,\n                \"delivery_id\": 180034,\n                \"client_order_id\": null,\n                \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                \"latitude\": \"28.583905\",\n                \"longitude\": \"77.322733\",\n                \"required_start_datetime\": \"2024-10-14T15:34:35+05:30\",\n                \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                \"arrival_start_datetime\": null,\n                \"arrival_finish_datetime\": null,\n                \"estimated_arrival_datetime\": null,\n                \"courier_visit_datetime\": null,\n                \"contact_person\": {\n                    \"name\": \"Yash Sharma\",\n                    \"phone\": \"916742127113\"\n                },\n                \"taking_amount\": \"0.00\",\n                \"buyout_amount\": \"0.00\",\n                \"note\": null,\n                \"previous_point_driving_distance_meters\": 1010,\n                \"packages\": [],\n                \"is_cod_cash_voucher_required\": false,\n                \"place_photo_url\": null,\n                \"sign_photo_url\": null,\n                \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGL2XZRKLWMKIN\",\n                \"checkin_code\": null,\n                \"checkin\": null,\n                \"is_return_point\": false,\n                \"is_order_payment_here\": false,\n                \"building_number\": null,\n                \"entrance_number\": null,\n                \"intercom_code\": null,\n                \"floor_number\": null,\n                \"apartment_number\": null,\n                \"invisible_mile_navigation_instructions\": null,\n                \"delivery\": {\n                    \"status\": \"canceled\"\n                }\n            }\n        ],\n        \"payment_amount\": \"55.00\",\n        \"delivery_fee_amount\": \"55.00\",\n        \"weight_fee_amount\": \"0.00\",\n        \"insurance_amount\": \"0.00\",\n        \"insurance_fee_amount\": \"0.00\",\n        \"loading_fee_amount\": \"0.00\",\n        \"money_transfer_fee_amount\": \"0.00\",\n        \"promo_code_discount_amount\": \"0.00\",\n        \"backpayment_amount\": \"0.00\",\n        \"cod_fee_amount\": \"0.00\",\n        \"return_fee_amount\": \"0.00\",\n        \"waiting_fee_amount\": \"0.00\",\n        \"backpayment_photo_url\": null,\n        \"waybill_document_url\": null,\n        \"courier\": null,\n        \"is_motobox_required\": false,\n        \"is_thermobox_required\": false,\n        \"payment_method\": \"cash\",\n        \"bank_card_id\": null,\n        \"applied_promo_code\": null,\n        \"is_return_required\": false\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "get orders",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/orders",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"orders"
+					]
+				},
+				"description": "Use this API method to retrieve a list of your orders. The list is sorted by `order_id`, descending."
+			},
+			"response": [
+				{
+					"name": "get-orders example",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/orders",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"orders"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 11:04:12 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"orders\": [\n        {\n            \"type\": \"standard\",\n            \"order_id\": 263073,\n            \"order_name\": \"63073\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-10-14T16:05:14+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"available\",\n            \"status_description\": \"Available\",\n            \"matter\": \"Food, medicine\",\n            \"total_weight_kg\": 4,\n            \"is_client_notification_enabled\": true,\n            \"is_contact_person_notification_enabled\": true,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576727,\n                    \"delivery_id\": null,\n                    \"client_order_id\": \"37879\",\n                    \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.57908\",\n                    \"longitude\": \"77.31912\",\n                    \"required_start_datetime\": \"2024-10-14T16:05:14+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T18:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Sonia Singh\",\n                        \"phone\": \"917988451542\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": \"pickup-location,Note for Courier\",\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGCMLSS6TXRIIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576728,\n                    \"delivery_id\": 180066,\n                    \"client_order_id\": \"37880\",\n                    \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T16:05:14+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T19:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Yash Sharma\",\n                        \"phone\": \"916742127113\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": \"dropoff-location,Note for Courier\",\n                    \"previous_point_driving_distance_meters\": 1010,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGM45WCXW1ELIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576729,\n                    \"delivery_id\": 180067,\n                    \"client_order_id\": \"37881\",\n                    \"address\": \"Sector C, Sector 56, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T16:05:14+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T19:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Monika Sharma\",\n                        \"phone\": \"915563214566\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": \"dropoff-location,Note for Courier\",\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGGLDSCDEW3WIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576730,\n                    \"delivery_id\": 180068,\n                    \"client_order_id\": \"37881\",\n                    \"address\": \"Amarpali Silicon City, Sector 76, Noida, Uttar Pradesh, 201303\",\n                    \"latitude\": \"28.568283\",\n                    \"longitude\": \"77.379676\",\n                    \"required_start_datetime\": \"2024-10-14T16:05:14+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T20:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Vinod Sharma\",\n                        \"phone\": \"915563214566\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": \"Note for Courier\",\n                    \"previous_point_driving_distance_meters\": 9839,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGCSXZYF22SYIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"151.00\",\n            \"delivery_fee_amount\": \"151.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"0.00\",\n            \"insurance_fee_amount\": \"0.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 263071,\n            \"order_name\": \"63071\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-10-14T16:02:37+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"new\",\n            \"status_description\": \"Created\",\n            \"matter\": \"Food\",\n            \"total_weight_kg\": 2,\n            \"is_client_notification_enabled\": true,\n            \"is_contact_person_notification_enabled\": true,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576723,\n                    \"delivery_id\": null,\n                    \"client_order_id\": \"99618\",\n                    \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.57908\",\n                    \"longitude\": \"77.31912\",\n                    \"required_start_datetime\": \"2024-10-14T16:02:37+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Sonia Singh\",\n                        \"phone\": \"917988451542\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG4SNYLTAZWCIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576724,\n                    \"delivery_id\": 180064,\n                    \"client_order_id\": \"99618\",\n                    \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T16:02:37+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T18:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Yash Sharma\",\n                        \"phone\": \"916742127113\"\n                    },\n                    \"taking_amount\": \"1250.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 1010,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": true,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG6IAMYRIZAAIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"102.50\",\n            \"delivery_fee_amount\": \"55.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"1000.00\",\n            \"insurance_fee_amount\": \"10.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"37.50\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 263068,\n            \"order_name\": \"63068\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-10-14T16:01:48+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"new\",\n            \"status_description\": \"Created\",\n            \"matter\": \"Food\",\n            \"total_weight_kg\": 2,\n            \"is_client_notification_enabled\": true,\n            \"is_contact_person_notification_enabled\": true,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576717,\n                    \"delivery_id\": null,\n                    \"client_order_id\": \"99618\",\n                    \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.57908\",\n                    \"longitude\": \"77.31912\",\n                    \"required_start_datetime\": \"2024-10-14T16:01:48+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Sonia Singh\",\n                        \"phone\": \"917988451542\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG66IJFRIIKYIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576718,\n                    \"delivery_id\": 180061,\n                    \"client_order_id\": \"99618\",\n                    \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T16:01:48+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T18:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Yash Sharma\",\n                        \"phone\": \"916742127113\"\n                    },\n                    \"taking_amount\": \"1250.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 1010,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": true,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG4Y9WG3WHDGIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"102.50\",\n            \"delivery_fee_amount\": \"55.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"1000.00\",\n            \"insurance_fee_amount\": \"10.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"37.50\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 263043,\n            \"order_name\": \"63043\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-10-14T15:34:35+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"canceled\",\n            \"status_description\": \"Cancelled via API\",\n            \"matter\": \"Food\",\n            \"total_weight_kg\": 3,\n            \"is_client_notification_enabled\": true,\n            \"is_contact_person_notification_enabled\": true,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576665,\n                    \"delivery_id\": null,\n                    \"client_order_id\": \"37879\",\n                    \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.57908\",\n                    \"longitude\": \"77.31912\",\n                    \"required_start_datetime\": \"2024-10-14T15:34:35+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T17:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Sonia Singh\",\n                        \"phone\": \"917988451542\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": \"Note for Courier\",\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [\n                        {\n                            \"order_package_id\": 241,\n                            \"ware_code\": \"1\",\n                            \"description\": \"Office Bag, Shirt\",\n                            \"items_count\": \"1\",\n                            \"item_payment_amount\": \"950.00\",\n                            \"nomenclature_code\": null\n                        }\n                    ],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGM9HZ44FFLDIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576666,\n                    \"delivery_id\": 180034,\n                    \"client_order_id\": null,\n                    \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T15:34:35+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Yash Sharma\",\n                        \"phone\": \"916742127113\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 1010,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGL2XZRKLWMKIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"canceled\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"55.00\",\n            \"delivery_fee_amount\": \"55.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"0.00\",\n            \"insurance_fee_amount\": \"0.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 263042,\n            \"order_name\": \"63042\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-10-14T15:32:44+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"available\",\n            \"status_description\": \"Available\",\n            \"matter\": \"Document\",\n            \"total_weight_kg\": 3,\n            \"is_client_notification_enabled\": true,\n            \"is_contact_person_notification_enabled\": true,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576663,\n                    \"delivery_id\": null,\n                    \"client_order_id\": \"99618\",\n                    \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.57908\",\n                    \"longitude\": \"77.31912\",\n                    \"required_start_datetime\": \"2024-10-14T16:02:44+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Sonia Singh\",\n                        \"phone\": \"917988451542\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGE36LI71MSKIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576664,\n                    \"delivery_id\": 180033,\n                    \"client_order_id\": \"99618\",\n                    \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T16:02:44+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T18:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Yash Sharma\",\n                        \"phone\": \"916742127113\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 1010,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PG4DX72T36K5IN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"60.00\",\n            \"delivery_fee_amount\": \"55.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"500.00\",\n            \"insurance_fee_amount\": \"5.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 263040,\n            \"order_name\": \"63040\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-10-14T15:31:37+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"available\",\n            \"status_description\": \"Available\",\n            \"matter\": \"Food\",\n            \"total_weight_kg\": 3,\n            \"is_client_notification_enabled\": true,\n            \"is_contact_person_notification_enabled\": true,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576659,\n                    \"delivery_id\": null,\n                    \"client_order_id\": \"Test\",\n                    \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.57908\",\n                    \"longitude\": \"77.31912\",\n                    \"required_start_datetime\": \"2024-10-14T16:01:37+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Sonia Singh\",\n                        \"phone\": \"917988451542\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGGIME1XF7RHIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576660,\n                    \"delivery_id\": 180031,\n                    \"client_order_id\": null,\n                    \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T16:01:37+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T18:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Yash Sharma\",\n                        \"phone\": \"916742127113\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 1010,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGEA2YYY3GDPIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"60.00\",\n            \"delivery_fee_amount\": \"55.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"500.00\",\n            \"insurance_fee_amount\": \"5.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 263034,\n            \"order_name\": \"63034\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-10-14T15:26:42+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"available\",\n            \"status_description\": \"Available\",\n            \"matter\": \"Food\",\n            \"total_weight_kg\": 3,\n            \"is_client_notification_enabled\": true,\n            \"is_contact_person_notification_enabled\": true,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576647,\n                    \"delivery_id\": null,\n                    \"client_order_id\": null,\n                    \"address\": \"B-24, Block B, Sector 3, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.57908\",\n                    \"longitude\": \"77.31912\",\n                    \"required_start_datetime\": \"2024-10-14T16:26:42+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T17:30:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Sonia Singh\",\n                        \"phone\": \"917988451542\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGC1KXLAAL3JIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 576648,\n                    \"delivery_id\": 180025,\n                    \"client_order_id\": null,\n                    \"address\": \"Nature Herbs, A-78, JJ Colony, Sector 4, Noida, Uttar Pradesh 201301\",\n                    \"latitude\": \"28.583905\",\n                    \"longitude\": \"77.322733\",\n                    \"required_start_datetime\": \"2024-10-14T16:26:42+05:30\",\n                    \"required_finish_datetime\": \"2024-10-14T18:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"Yash Sharma\",\n                        \"phone\": \"916742127113\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 1010,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": \"https://apitest.borzodelivery.com/in/track/PGCKF4PM24PWIN\",\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"planned\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"60.00\",\n            \"delivery_fee_amount\": \"55.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"500.00\",\n            \"insurance_fee_amount\": \"5.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n           \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 222626,\n            \"order_name\": \"22626\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2024-03-25T12:31:51+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"canceled\",\n            \"status_description\": \"Canceled\",\n            \"matter\": \"Dokumen\",\n            \"total_weight_kg\": 6,\n            \"is_client_notification_enabled\": false,\n            \"is_contact_person_notification_enabled\": false,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 495694,\n                    \"delivery_id\": null,\n                    \"client_order_id\": \"2000342391\",\n                    \"address\": \"Mumbai Central Railway Station Building, Mumbai Central, Mumbai, Maharashtra 400008, India\",\n                    \"latitude\": \"18.969539\",\n                    \"longitude\": \"72.819329\",\n                    \"required_start_datetime\": \"2024-03-25T20:31:51+05:30\",\n                    \"required_finish_datetime\": \"2024-03-25T22:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"asd asd\",\n                        \"phone\": \"919354433453\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": null,\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 495695,\n                    \"delivery_id\": 139501,\n                    \"client_order_id\": \"2000342391\",\n                    \"address\": \"Mumbai Central Railway Station Building, Mumbai Central, Mumbai, Maharashtra 400008, India\",\n                    \"latitude\": \"18.969539\",\n                    \"longitude\": \"72.819329\",\n                    \"required_start_datetime\": \"2024-03-25T20:01:51+05:30\",\n                    \"required_finish_datetime\": \"2024-03-25T22:00:00+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"sda df\",\n                        \"phone\": \"919354433456\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": null,\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"canceled\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"58.00\",\n            \"delivery_fee_amount\": \"48.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"990.00\",\n            \"insurance_fee_amount\": \"10.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"0.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n           \"waybill_document_url\": null,\n            \"courier\": null,\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 216790,\n            \"order_name\": \"16790\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2023-12-19T16:08:24+05:30\",\n            \"finish_datetime\": null,\n            \"status\": \"canceled\",\n            \"status_description\": \"Canceled\",\n            \"matter\": \"Documents\",\n            \"total_weight_kg\": 0,\n            \"is_client_notification_enabled\": false,\n            \"is_contact_person_notification_enabled\": false,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 483977,\n                    \"delivery_id\": null,\n                    \"client_order_id\": null,\n                    \"address\": \"ASDA Secure, 16th Road, Bandra West, Mumbai, Maharashtra, India\",\n                    \"latitude\": \"19.06514\",\n                    \"longitude\": \"72.8307538\",\n                    \"required_start_datetime\": \"2023-12-19T16:18:24+05:30\",\n                    \"required_finish_datetime\": \"2023-12-19T17:03:24+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": null,\n                        \"phone\": \"911121111155\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": null,\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 483978,\n                    \"delivery_id\": 133557,\n                    \"client_order_id\": null,\n                    \"address\": \"Quesso Bar Ristorante, Mhada Colony, Andheri West, Mumbai, Maharashtra, India\",\n                    \"latitude\": \"19.148752\",\n                    \"longitude\": \"72.8316253\",\n                    \"required_start_datetime\": \"2023-12-19T16:18:24+05:30\",\n                    \"required_finish_datetime\": \"2023-12-19T18:06:02+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": null,\n                    \"contact_person\": {\n                        \"name\": \"qwe\",\n                        \"phone\": \"911121111155\"\n                    },\n                    \"taking_amount\": \"500.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 18497,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": null,\n                    \"checkin_code\": null,\n                    \"checkin\": null,\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": true,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"canceled\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"1246.00\",\n            \"delivery_fee_amount\": \"191.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"500.00\",\n            \"insurance_fee_amount\": \"5.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"1000.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": {\n                \"courier_id\": 116455,\n                \"surname\": \"ApiTest\",\n                \"name\": \"CourierRagnar\",\n                \"middlename\": null,\n                \"phone\": \"911452643765\",\n                \"photo_url\": \"https://robotapitest.wefast.in/data-files/couriers/2b9affcacb9a856c729cfa97c9f376e3e58135d5225f6be9787793a323944018.jpg\",\n                \"latitude\": null,\n                \"longitude\": null\n            },\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        },\n        {\n            \"type\": \"standard\",\n            \"order_id\": 215134,\n            \"order_name\": \"15134\",\n            \"vehicle_type_id\": 8,\n            \"created_datetime\": \"2023-11-02T18:37:03+05:30\",\n            \"finish_datetime\": \"2023-11-02T18:39:34+05:30\",\n            \"status\": \"completed\",\n            \"status_description\": \"Completed\",\n            \"matter\": \"Documents\",\n            \"total_weight_kg\": 0,\n            \"is_client_notification_enabled\": false,\n            \"is_contact_person_notification_enabled\": false,\n            \"loaders_count\": 0,\n            \"backpayment_details\": null,\n            \"points\": [\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 480644,\n                    \"delivery_id\": null,\n                    \"client_order_id\": null,\n                    \"address\": \"ASDA Secure, 16th Road, Bandra West, Mumbai, Maharashtra, India\",\n                    \"latitude\": \"19.06514\",\n                    \"longitude\": \"72.8307538\",\n                    \"required_start_datetime\": \"2023-11-02T18:37:03+05:30\",\n                    \"required_finish_datetime\": \"2023-11-02T19:22:03+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": \"2023-11-02T18:39:15+05:30\",\n                    \"contact_person\": {\n                        \"name\": null,\n                        \"phone\": \"911121111155\"\n                    },\n                    \"taking_amount\": \"0.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 0,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": null,\n                    \"checkin_code\": null,\n                    \"checkin\": {\n                        \"recipient_full_name\": null,\n                        \"recipient_position\": null\n                    },\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": false,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": null\n                },\n                {\n                    \"point_type\": \"plain\",\n                    \"point_id\": 480645,\n                    \"delivery_id\": 131870,\n                    \"client_order_id\": \"234223\",\n                    \"address\": \"Quesso Bar Ristorante, Mhada Colony, Andheri West, Mumbai, Maharashtra, India\",\n                    \"latitude\": \"19.148752\",\n                    \"longitude\": \"72.8316253\",\n                    \"required_start_datetime\": \"2023-11-02T18:37:03+05:30\",\n                    \"required_finish_datetime\": \"2023-11-02T20:24:41+05:30\",\n                    \"arrival_start_datetime\": null,\n                    \"arrival_finish_datetime\": null,\n                    \"estimated_arrival_datetime\": null,\n                    \"courier_visit_datetime\": \"2023-11-02T18:39:34+05:30\",\n                    \"contact_person\": {\n                        \"name\": \"qwe\",\n                        \"phone\": \"911121111155\"\n                    },\n                    \"taking_amount\": \"500.00\",\n                    \"buyout_amount\": \"0.00\",\n                    \"note\": null,\n                    \"previous_point_driving_distance_meters\": 11927,\n                    \"packages\": [],\n                    \"is_cod_cash_voucher_required\": false,\n                    \"place_photo_url\": null,\n                    \"sign_photo_url\": null,\n                    \"tracking_url\": null,\n                    \"checkin_code\": null,\n                    \"checkin\": {\n                        \"recipient_full_name\": null,\n                        \"recipient_position\": null\n                    },\n                    \"is_return_point\": false,\n                    \"is_order_payment_here\": true,\n                    \"building_number\": null,\n                    \"entrance_number\": null,\n                    \"intercom_code\": null,\n                    \"floor_number\": null,\n                    \"apartment_number\": null,\n                    \"invisible_mile_navigation_instructions\": null,\n                    \"delivery\": {\n                        \"status\": \"finished\"\n                    }\n                }\n            ],\n            \"payment_amount\": \"1193.00\",\n            \"delivery_fee_amount\": \"138.00\",\n            \"weight_fee_amount\": \"0.00\",\n            \"insurance_amount\": \"500.00\",\n            \"insurance_fee_amount\": \"5.00\",\n            \"loading_fee_amount\": \"0.00\",\n            \"money_transfer_fee_amount\": \"1000.00\",\n            \"promo_code_discount_amount\": \"0.00\",\n            \"backpayment_amount\": \"0.00\",\n            \"cod_fee_amount\": \"0.00\",\n            \"return_fee_amount\": \"0.00\",\n            \"waiting_fee_amount\": \"0.00\",\n            \"backpayment_photo_url\": null,\n            \"waybill_document_url\": null,\n            \"courier\": {\n                \"courier_id\": 116290,\n                \"surname\": null,\n                \"name\": \"Integration Api Courier | Mumbai\",\n                \"middlename\": null,\n                \"phone\": \"918450000003\",\n                \"photo_url\": \"https://robotapitest.wefast.in/data-files/couriers/7c2d221a0c0e56ae35983564922452dc7b54b36e40c8bb1fb5fa8ee4ee76e79d.jpg\",\n                \"latitude\": null,\n                \"longitude\": null\n            },\n            \"is_motobox_required\": false,\n            \"is_thermobox_required\": false,\n            \"payment_method\": \"cash\",\n            \"bank_card_id\": null,\n            \"applied_promo_code\": null,\n            \"is_return_required\": false\n        }\n    ],\n    \"orders_count\": 10\n}"
+				}
+			]
+		},
+		{
+			"name": "get courier info and courier location",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/courier?order_id=263073",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"courier"
+					],
+					"query": [
+						{
+							"key": "order_id",
+							"value": "263073"
+						}
+					]
+				},
+				"description": "Use this API method to retrieve a courier info for your order.\n\nIf order has status `active` ([Order statuses](https://borzodelivery.com/in/business-api/doc#order-statuses)) and the courier is on the way, courier location will be returned."
+			},
+			"response": [
+				{
+					"name": "Courier info and courier location example",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/courier?order_id=263073",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"courier"
+							],
+							"query": [
+								{
+									"key": "order_id",
+									"value": "263073"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 11:36:02 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"courier\": {\n        \"courier_id\": 116455,\n        \"surname\": \"ApiTest\",\n        \"name\": \"CourierRagnar\",\n        \"middlename\": null,\n        \"phone\": \"911452643765\",\n        \"photo_url\": \"https://robotapitest.wefast.in/data-files/couriers/2b9affcacb9a856c729cfa97c9f376e3e58135d5225f6be9787793a323944018.jpg\",\n        \"latitude\": \"41.1741918\",\n        \"longitude\": \"-8.6080938\"\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "client profile info",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-DV-Auth-Token",
+						"value": "{{AuthToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/client",
+					"protocol": "https",
+					"host": [
+						"robotapitest-in",
+						"borzodelivery",
+						"com"
+					],
+					"path": [
+						"api",
+						"business",
+						"1.6",
+						"client"
+					]
+				},
+				"description": "Use this API method to retrieve a client info with allowed payment methods."
+			},
+			"response": [
+				{
+					"name": "Client profile info example",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-DV-Auth-Token",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://robotapitest-in.borzodelivery.com/api/business/1.6/client",
+							"protocol": "https",
+							"host": [
+								"robotapitest-in",
+								"borzodelivery",
+								"com"
+							],
+							"path": [
+								"api",
+								"business",
+								"1.6",
+								"client"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Server",
+							"value": "nginx"
+						},
+						{
+							"key": "Date",
+							"value": "Mon, 14 Oct 2024 11:37:13 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=utf-8"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Vary",
+							"value": "Accept-Encoding"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block;"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "X-Frame-Options",
+							"value": "DENY"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Strict-Transport-Security",
+							"value": "max-age=63072000; includeSubDomains"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"is_successful\": true,\n    \"client\": {\n        \"name\": \"Ragnar API Business\",\n        \"phone\": \"911121111321\",\n        \"email\": \"ragnarApiTest@gmail.com\",\n        \"legal_type\": \"individual_person\",\n        \"allowed_payment_methods\": [\n            \"cash\"\n        ]\n    }\n}"
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "AuthToken",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

@@ -265,8 +265,61 @@ class _ServiceRequestDetailScreenState
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 24),
+
+                if (req.borzoTrackingUrl != null && req.borzoTrackingUrl!.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.local_shipping, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text(
+                              'Delivery via Borzo',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Status: ${(req.borzoStatus ?? 'Unknown').replaceAll('_', ' ').toUpperCase()}', 
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.my_location),
+                            label: const Text('Track Courier', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () async {
+                              final uri = Uri.parse(req.borzoTrackingUrl!);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
 
                 // Problem Description
                 const Text(

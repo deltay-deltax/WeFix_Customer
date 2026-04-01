@@ -24,6 +24,9 @@ class ServiceRequestModel {
   final DocumentReference? reference;
   final int? rating;
   final String? review;
+  final String? borzoOrderId;
+  final String? borzoTrackingUrl;
+  final String? borzoStatus;
 
   ServiceRequestModel({
      this.id = '',
@@ -50,6 +53,9 @@ class ServiceRequestModel {
     this.reference,
     this.rating,
     this.review,
+    this.borzoOrderId,
+    this.borzoTrackingUrl,
+    this.borzoStatus,
   });
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
@@ -80,6 +86,9 @@ class ServiceRequestModel {
           : null,
       rating: data['rating'] is int ? data['rating'] : null,
       review: data['review'] as String?,
+      borzoOrderId: data['borzoOrderId'] as String?,
+      borzoTrackingUrl: data['borzoTrackingUrl'] as String?,
+      borzoStatus: data['borzoStatus'] as String?,
     );
   }
 
@@ -106,6 +115,9 @@ class ServiceRequestModel {
       'serviceDetails': serviceDetails?.toMap(),
       'rating': rating,
       'review': review,
+      'borzoOrderId': borzoOrderId,
+      'borzoTrackingUrl': borzoTrackingUrl,
+      'borzoStatus': borzoStatus,
     };
   }
 }
