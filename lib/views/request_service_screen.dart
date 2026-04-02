@@ -28,6 +28,8 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
   final yourNameCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
   final pickupCtrl = TextEditingController();
+  double? _pickupLat;
+  double? _pickupLng;
   String priority = 'Low';
   bool loading = false;
   final _picker = ImagePicker();
@@ -210,9 +212,11 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
                     AppRoutes.manageAddresses,
                     arguments: true, // isSelectionMode = true
                   );
-                  if (selectedAddress != null && selectedAddress is String) {
+                  if (selectedAddress != null && selectedAddress is Map) {
                     setState(() {
-                      pickupCtrl.text = selectedAddress;
+                      pickupCtrl.text = selectedAddress['address']?.toString() ?? '';
+                      _pickupLat = double.tryParse(selectedAddress['lat']?.toString() ?? '');
+                      _pickupLng = double.tryParse(selectedAddress['lng']?.toString() ?? '');
                     });
                   }
                 },
@@ -379,6 +383,8 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
         'yourName': yourNameCtrl.text.trim(),
         'phone': phoneCtrl.text.trim(),
         'pickupAddress': pickupCtrl.text.trim(),
+        'pickupLat': _pickupLat,
+        'pickupLng': _pickupLng,
         'priority': priority,
         'images': imageUrls,
         'status': 'Pending',

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WeFix – Warranty Email Notification Cloud Functions
  *
  * Uses firebase functions.config() for credentials (works on Spark plan).
@@ -469,7 +469,7 @@ exports.createBorzoOrder = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("unauthenticated", "User must be logged in");
     }
 
-    const { points, matter, total_weight_kg, vehicle_type_id, type, requestId, shopId } = data;
+    const { points, matter, total_weight_kg, vehicle_type_id, type, requestId, shopId, isReverseDrop } = data;
     if (!points || points.length < 2) {
         throw new functions.https.HttpsError("invalid-argument", "At least 2 points are required.");
     }
@@ -502,12 +502,21 @@ exports.createBorzoOrder = functions.https.onCall(async (data, context) => {
 
         const order = result.order;
 
+        // Route fields dynamically: Reverse Drop vs. Forward Drop
         if (requestId && shopId) {
-            await db.collection("shop_users").doc(shopId).collection("requests").doc(requestId).update({
-                borzoOrderId: order.order_id,
-                borzoTrackingUrl: order.points[0]?.tracking_url || null,
-                borzoStatus: order.status,
-            });
+            const updatePayload = {};
+            if (isReverseDrop) {
+                updatePayload.reverseDropScheduled = true;
+                updatePayload.reverseBorzoOrderId = order.order_id;
+                updatePayload.reverseBorzoTrackingUrl = order.points[0]?.tracking_url || null;
+                updatePayload.reverseBorzoStatus = order.status;
+            } else {
+                updatePayload.borzoOrderId = order.order_id;
+                updatePayload.borzoTrackingUrl = order.points[0]?.tracking_url || null;
+                updatePayload.borzoStatus = order.status;
+                updatePayload.borzoDeliveryCost = order.payment_amount ? order.payment_amount.toString() : null;
+            }
+            await db.collection("shop_users").doc(shopId).collection("requests").doc(requestId).update(updatePayload);
         }
 
         return order;
@@ -531,22 +540,37 @@ exports.borzoWebhook = functions.https.onRequest(async (req, res) => {
     const newStatus = data.order.status;
 
     try {
-        const requestsSnap = await db.collectionGroup("requests").where("borzoOrderId", "==", orderId).get();
-        if (requestsSnap.empty) {
-            functions.logger.log(`No matching request found for Borzo Order ID: ${orderId}`);
+        // 1. Try to match as a Forward Trip
+        let requestsSnap = await db.collectionGroup("requests").where("borzoOrderId", "==", orderId).get();
+        if (!requestsSnap.empty) {
+            const batch = db.batch();
+            requestsSnap.forEach((doc) => {
+                batch.update(doc.ref, {
+                    borzoStatus: newStatus,
+                    borzoStatusDescription: data.order.status_description || "Updated"
+                });
+            });
+            await batch.commit();
+            functions.logger.log(`Updated forward status for Borzo Order ID: ${orderId} to ${newStatus}`);
             return res.status(200).send("OK");
         }
 
-        const batch = db.batch();
-        requestsSnap.forEach((doc) => {
-            batch.update(doc.ref, {
-                borzoStatus: newStatus,
-                borzoStatusDescription: data.order.status_description || "Updated"
+        // 2. Try to match as a Reverse Trip
+        let reverseRequestsSnap = await db.collectionGroup("requests").where("reverseBorzoOrderId", "==", orderId).get();
+        if (!reverseRequestsSnap.empty) {
+            const batch = db.batch();
+            reverseRequestsSnap.forEach((doc) => {
+                batch.update(doc.ref, {
+                    reverseBorzoStatus: newStatus,
+                    reverseBorzoStatusDescription: data.order.status_description || "Updated"
+                });
             });
-        });
+            await batch.commit();
+            functions.logger.log(`Updated REVERSE status for Borzo Order ID: ${orderId} to ${newStatus}`);
+            return res.status(200).send("OK");
+        }
 
-        await batch.commit();
-        functions.logger.log(`Updated status for Borzo Order ID: ${orderId} to ${newStatus}`);
+        functions.logger.log(`No matching request found for Borzo Order ID: ${orderId}`);
         return res.status(200).send("OK");
     } catch (error) {
         functions.logger.error("Webhook processing error:", error);

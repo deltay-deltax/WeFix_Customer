@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/models/service_request_model.dart';
 import '../core/constants/app_colors.dart';
 import 'raise_complaint_screen.dart';
+import '../services/pdf_invoice_service.dart';
 
 class ServiceRequestDetailScreen extends StatefulWidget {
   final ServiceRequestModel request;
@@ -267,58 +268,114 @@ class _ServiceRequestDetailScreenState
                 ),
                 const SizedBox(height: 24),
 
-                if (req.borzoTrackingUrl != null && req.borzoTrackingUrl!.isNotEmpty) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade200),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
+                Builder(
+                  builder: (context) {
+                    bool showForwardTracking = false;
+                    bool showReverseTracking = false;
+
+                    if (req.borzoTrackingUrl != null && req.borzoTrackingUrl!.isNotEmpty) {
+                      final bStatus = req.borzoStatus?.toLowerCase() ?? '';
+                      if (bStatus != 'completed' && bStatus != 'delivered') {
+                        showForwardTracking = true;
+                      }
+                    }
+
+                    if (req.status == 'payment_done' && req.reverseBorzoTrackingUrl != null && req.reverseBorzoTrackingUrl!.isNotEmpty) {
+                      final rbStatus = req.reverseBorzoStatus?.toLowerCase() ?? '';
+                      if (rbStatus != 'completed' && rbStatus != 'delivered') {
+                        showReverseTracking = true;
+                      }
+                      showForwardTracking = false; 
+                    }
+
+                    final rbStatCheck = req.reverseBorzoStatus?.toLowerCase() ?? '';
+                    if ((rbStatCheck == 'completed' || rbStatCheck == 'delivered') && req.status != 'delivered') {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        FirebaseFirestore.instance
+                            .collection('shop_users')
+                            .doc(req.shopId)
+                            .collection('requests')
+                            .doc(req.id)
+                            .update({'status': 'delivered'});
+                      });
+                    }
+
+                    if (!showForwardTracking && !showReverseTracking) return const SizedBox.shrink();
+
+                    final bool isReverse = showReverseTracking;
+                    final String trackingUrl = isReverse ? req.reverseBorzoTrackingUrl! : req.borzoTrackingUrl!;
+                    final String dStatus = isReverse ? (req.reverseBorzoStatus ?? 'Unknown') : (req.borzoStatus ?? 'Unknown');
+                    final String dOrderId = isReverse ? (req.reverseBorzoOrderId ?? '') : (req.borzoOrderId?.toString() ?? '');
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 24.0),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isReverse ? Colors.teal.shade50 : Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isReverse ? Colors.teal.shade200 : Colors.blue.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.local_shipping, color: Colors.blue),
-                            SizedBox(width: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.local_shipping, color: isReverse ? Colors.teal.shade700 : Colors.blue),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    isReverse ? 'Return Delivery via Borzo (from ${req.shopName})' : 'Delivery via Borzo',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isReverse ? Colors.teal.shade700 : Colors.blue),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
                             Text(
-                              'Delivery via Borzo',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                              'Status: ${dStatus.replaceAll('_', ' ').toUpperCase()}', 
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            if (dOrderId.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Order ID: #$dOrderId',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isReverse ? Colors.teal.shade700 : Colors.blue,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                icon: const Icon(Icons.my_location),
+                                label: Text(isReverse ? 'Track Return Delivery' : 'Track Courier', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                onPressed: () async {
+                                  final uri = Uri.parse(trackingUrl);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  }
+                                },
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Status: ${(req.borzoStatus ?? 'Unknown').replaceAll('_', ' ').toUpperCase()}', 
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            icon: const Icon(Icons.my_location),
-                            label: const Text('Track Courier', style: TextStyle(fontWeight: FontWeight.bold)),
-                            onPressed: () async {
-                              final uri = Uri.parse(req.borzoTrackingUrl!);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                      ),
+                    );
+                  },
+                ),
 
 
                 // Problem Description
@@ -387,6 +444,25 @@ class _ServiceRequestDetailScreenState
                 // Raise a Complaint
                 _buildComplaintButton(context, req),
 
+                const SizedBox(height: 24),
+                
+                // Download Invoice Button
+                if (req.serviceDetails != null)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: () => PdfInvoiceService.generateAndShowInvoice(req),
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('Download Invoice (PDF)', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF2F74F9),
+                        side: const BorderSide(color: Color(0xFF2F74F9), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                      ),
+                    ),
+                  ),
+
                 const SizedBox(height: 80), // Bottom padding for FAB/Button
               ],
             ),
@@ -424,6 +500,8 @@ class _ServiceRequestDetailScreenState
           const SizedBox(height: 8),
           _CostRow(label: 'Labor Cost:', value: '₹${details.laborCost}'),
           _CostRow(label: 'Parts Cost:', value: '₹${details.partsCost}'),
+          if ((double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0) > 0)
+            _CostRow(label: 'Courier Delivery:', value: '₹${req.borzoDeliveryCost}'),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -433,7 +511,7 @@ class _ServiceRequestDetailScreenState
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Text(
-                '₹${details.totalCost}',
+                '₹${details.totalCost + (double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -470,9 +548,8 @@ class _ServiceRequestDetailScreenState
   Widget _buildRatingSection(BuildContext context, ServiceRequestModel req) {
     if (_hideRating) return const SizedBox.shrink();
 
-    bool isCompleted = req.status.toLowerCase() == 'payment_done' ||
-        req.status.toLowerCase() == 'completed' ||
-        req.status.toLowerCase() == 'paid';
+    bool isCompleted = req.status.toLowerCase() == 'delivered' ||
+        req.status.toLowerCase() == 'completed';
 
     if (!isCompleted) return const SizedBox.shrink();
 
@@ -720,9 +797,9 @@ class _ServiceRequestDetailScreenState
   }
 
   Widget _buildComplaintButton(BuildContext context, ServiceRequestModel req) {
-    // Only show if strictly completed or payment_done
+    // Only show if strictly delivered
     final s = req.status.toLowerCase();
-    final isCompleted = s == 'completed' || s == 'payment_done';
+    final isCompleted = s == 'delivered';
 
     if (!isCompleted) return const SizedBox.shrink();
 

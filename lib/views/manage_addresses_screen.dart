@@ -155,7 +155,11 @@ class _ManageAddressesScreenState extends State<ManageAddressesScreen> {
                           icon: Icons.my_location,
                           isCurrentLocation: true,
                           onTap: widget.isSelectionMode ? () {
-                            Navigator.pop(context, vm.currentLocation);
+                            Navigator.pop(context, {
+                              'address': vm.currentLocation,
+                              'lat': vm.currentLat,
+                              'lng': vm.currentLng,
+                            });
                           } : null,
                         );
                       }
@@ -218,7 +222,11 @@ class _ManageAddressesScreenState extends State<ManageAddressesScreen> {
                               icon: Icons.home_outlined,
                               onDelete: () => _confirmDelete(docs[i].id),
                               onTap: widget.isSelectionMode ? () {
-                                Navigator.pop(context, fullAddress);
+                                Navigator.pop(context, {
+                                  'address': fullAddress,
+                                  'lat': data['lat'],
+                                  'lng': data['lng'],
+                                });
                               } : null,
                             );
                           },

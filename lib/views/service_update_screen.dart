@@ -80,57 +80,21 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
   }
 
   void _showPaymentDialog(ServiceRequestModel req) {
-    // Validate amount
-    double? amount =
-        double.tryParse(req.amount.replaceAll(RegExp(r'[^0-9.]'), ''));
-    if (amount == null || amount <= 0) {
+    double baseAmount = (req.serviceDetails?.totalCost ??
+            double.tryParse(req.amount.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+            0)
+        .toDouble();
+    double deliveryCost = double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0;
+    double amount = baseAmount + deliveryCost;
+
+    if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invalid amount for payment')),
       );
       return;
     }
 
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Choose Payment Method',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(Icons.credit_card, color: Colors.blue),
-                title: const Text('Pay Online'),
-                subtitle: const Text('Razorpay, Cards, Netbanking'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _startRazorpay(req, amount);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.money, color: Colors.green),
-                title: const Text('Pay on Delivery'),
-                subtitle: const Text('Cash / UPI upon service completion'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _updateStatus(req, 'payment_on_delivery');
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    _startRazorpay(req, amount);
   }
 
   void _startRazorpay(ServiceRequestModel req, double amount) {
@@ -164,7 +128,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: _AcceptRequestBottomSheet(
             req: req,
             onStatusUpdate: (status) => _updateStatus(req, status),
@@ -233,12 +198,11 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                        _filterChip('All', 'All Status'),
+                    _filterChip('All', 'All Status'),
                     const SizedBox(width: 8),
-                    
-                     _filterChip('New', 'waiting_for_confirmation'),
+                    _filterChip('New', 'waiting_for_confirmation'),
                     const SizedBox(width: 8),
-                    _filterChip('In Progress', 'in_progress'),  
+                    _filterChip('In Progress', 'in_progress'),
                   ],
                 ),
               ),
@@ -357,9 +321,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                     
-                      ],
+                      children: [],
                     ),
                   ),
                   _StatusPill(status: req.status),
@@ -398,7 +360,20 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
               _infoText('Problem: ', req.problem),
               _infoText('Phone: ', req.phone),
               _infoText('Address: ', req.pickupAddress),
-              _infoText('Amount: ', '₹${req.amount}'),
+              Builder(
+                builder: (context) {
+                  double baseAmnt = (req.serviceDetails?.totalCost ??
+                          double.tryParse(
+                              req.amount.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+                          0)
+                      .toDouble();
+                  double deliveryAmnt =
+                      double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0;
+                  double totalAmnt = baseAmnt + deliveryAmnt;
+                  return _infoText(
+                      'Amount: ', '₹${totalAmnt.toStringAsFixed(0)}');
+                },
+              ),
 
               const SizedBox(height: 16),
 
@@ -477,7 +452,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                 ),
               ],
 
-              if (req.status == 'in_progress') ...[
+              if (req.status == 'in_progress' &&
+                  (req.borzoOrderId == null || req.borzoOrderId!.isEmpty)) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding:
@@ -529,7 +505,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                             );
                           } else {
                             // Render a disabled icon so the user knows there is no location provided
-                            return const Icon(Icons.location_off, color: Colors.grey, size: 24);
+                            return const Icon(Icons.location_off,
+                                color: Colors.grey, size: 24);
                           }
                         },
                       ),
@@ -758,7 +735,7 @@ class _StatusPill extends StatelessWidget {
     String display = status.replaceAll('_', ' ').toUpperCase();
     if (status == 'payment_done') display = 'COMPLETED';
     if (status == 'in_service') display = 'IN PROGRESS';
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -811,6 +788,25 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
   TimeOfDay? _selectedTime;
   bool _isSubmitting = false;
 
+  String _sanitizePhone(String phone) {
+    String cleaned = phone.replaceAll(RegExp(r'[^\d]'), '');
+    if (cleaned.isEmpty) return "919999999999";
+    if (cleaned.length == 10) return "91$cleaned";
+    if (cleaned.length > 10 && cleaned.startsWith('91')) return cleaned;
+    if (cleaned.length > 10) return cleaned.substring(cleaned.length - 10);
+    return "919999999999";
+  }
+
+  String _formatDateWithOffset(DateTime date) {
+    String iso = date.toIso8601String();
+    int offsetMins = date.timeZoneOffset.inMinutes;
+    if (offsetMins == 0) return "${iso}Z";
+    String sign = offsetMins < 0 ? "-" : "+";
+    int h = (offsetMins.abs() / 60).floor();
+    int m = offsetMins.abs() % 60;
+    return "$iso$sign${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+  }
+
   @override
   void initState() {
     super.initState();
@@ -823,26 +819,73 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
           .collection('registered_shop_users')
           .doc(widget.req.shopId)
           .get();
-          
+
       String shopAddress = widget.req.shopName;
       String shopPhone = '';
+      double? shopLat;
+      double? shopLng;
+
       if (shopDoc.exists && shopDoc.data() != null) {
         final data = shopDoc.data() as Map<String, dynamic>;
-        shopAddress = data['address'] ?? data['addressLocality'] ?? widget.req.shopName;
-        shopPhone = data['phone'] ?? data['phoneNumber'] ?? '';
+
+        final rawAddr = data['address'] ?? data['addressLocality'];
+        if (rawAddr is Map) {
+          final parts = [];
+          if (rawAddr['line1'] != null) parts.add(rawAddr['line1']);
+          if (rawAddr['line2'] != null) parts.add(rawAddr['line2']);
+          if (rawAddr['city'] != null) parts.add(rawAddr['city']);
+          if (rawAddr['pincode'] != null) parts.add(rawAddr['pincode']);
+          shopAddress = parts.join(', ');
+
+          shopLat = double.tryParse(rawAddr['lat']?.toString() ?? '');
+          shopLng = double.tryParse(rawAddr['lng']?.toString() ?? '');
+        } else if (rawAddr is String) {
+          shopAddress = rawAddr;
+        } else if (rawAddr != null) {
+          shopAddress = rawAddr.toString();
+        }
+
+        final rawPhone = data['phone'] ?? data['phoneNumber'];
+        //... keep rest identical
+        if (rawPhone is String) {
+          shopPhone = rawPhone;
+        } else if (rawPhone != null) {
+          shopPhone = rawPhone.toString();
+        }
       }
 
-      final res = await BorzoService().calculateOrder(
+      final fwdRes = await BorzoService().calculateOrder(
         userAddress: widget.req.pickupAddress,
+        userLat: widget.req.pickupLat,
+        userLng: widget.req.pickupLng,
         userName: widget.req.yourName,
-        userPhone: widget.req.phone,
+        userPhone: _sanitizePhone(widget.req.phone),
         shopAddress: shopAddress,
+        shopLat: shopLat,
+        shopLng: shopLng,
         shopName: widget.req.shopName,
-        shopPhone: shopPhone,
+        shopPhone: _sanitizePhone(shopPhone),
       );
+
+      final revRes = await BorzoService().calculateOrder(
+        userAddress: shopAddress,
+        userLat: shopLat,
+        userLng: shopLng,
+        userName: widget.req.shopName,
+        userPhone: _sanitizePhone(shopPhone),
+        shopAddress: widget.req.pickupAddress,
+        shopLat: widget.req.pickupLat,
+        shopLng: widget.req.pickupLng,
+        shopName: widget.req.yourName,
+        shopPhone: _sanitizePhone(widget.req.phone),
+      );
+
+      final d1 = double.tryParse(fwdRes['order']?['payment_amount']?.toString() ?? fwdRes['payment_amount']?.toString() ?? '0') ?? 0;
+      final d2 = double.tryParse(revRes['order']?['payment_amount']?.toString() ?? revRes['payment_amount']?.toString() ?? '0') ?? 0;
+
       if (mounted) {
         setState(() {
-          _deliveryCost = res['payment_amount']?.toString() ?? 'N/A';
+          _deliveryCost = (d1 + d2).toStringAsFixed(0);
           _isLoadingCost = false;
         });
       }
@@ -891,23 +934,63 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
             .get();
         String shopAddress = widget.req.shopName;
         String shopPhone = '';
+        double? shopLat;
+        double? shopLng;
+
         if (shopDoc.exists && shopDoc.data() != null) {
           final data = shopDoc.data() as Map<String, dynamic>;
-          shopAddress = data['address'] ?? data['addressLocality'] ?? widget.req.shopName;
-          shopPhone = data['phone'] ?? data['phoneNumber'] ?? '';
+
+          final rawAddr = data['address'] ?? data['addressLocality'];
+          if (rawAddr is Map) {
+            final parts = [];
+            if (rawAddr['line1'] != null) parts.add(rawAddr['line1']);
+            if (rawAddr['line2'] != null) parts.add(rawAddr['line2']);
+            if (rawAddr['city'] != null) parts.add(rawAddr['city']);
+            if (rawAddr['pincode'] != null) parts.add(rawAddr['pincode']);
+            shopAddress = parts.join(', ');
+
+            shopLat = double.tryParse(rawAddr['lat']?.toString() ?? '');
+            shopLng = double.tryParse(rawAddr['lng']?.toString() ?? '');
+          } else if (rawAddr is String) {
+            shopAddress = rawAddr;
+          } else if (rawAddr != null) {
+            shopAddress = rawAddr.toString();
+          }
+
+          final rawPhone = data['phone'] ?? data['phoneNumber'];
+          if (rawPhone is String) {
+            shopPhone = rawPhone;
+          } else if (rawPhone != null) {
+            shopPhone = rawPhone.toString();
+          }
         }
 
         await BorzoService().createOrder(
           userAddress: widget.req.pickupAddress,
+          userLat: widget.req.pickupLat,
+          userLng: widget.req.pickupLng,
           userName: widget.req.yourName,
-          userPhone: widget.req.phone,
+          userPhone: _sanitizePhone(widget.req.phone),
           shopAddress: shopAddress,
+          shopLat: shopLat,
+          shopLng: shopLng,
           shopName: widget.req.shopName,
-          shopPhone: shopPhone,
+          shopPhone: _sanitizePhone(shopPhone),
           requestId: widget.req.id,
           shopId: widget.req.shopId,
-          requiredStartDatetime: _selectedDate!.toIso8601String(),
+          requiredStartDatetime: _formatDateWithOffset(_selectedDate!),
         );
+
+        final doubleCost = (double.tryParse(_deliveryCost ?? '0') ?? 0);
+        await FirebaseFirestore.instance
+            .collection('shop_users')
+            .doc(widget.req.shopId)
+            .collection('requests')
+            .doc(widget.req.id)
+            .update({
+          'borzoDeliveryCost': doubleCost.toStringAsFixed(2),
+        });
+
         widget.onStatusUpdate('in_progress');
         if (mounted) Navigator.pop(context);
       } catch (e) {
@@ -940,39 +1023,55 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          _isLoadingCost
-              ? const Center(child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ))
-              : _errorMessage != null
-                  ? Text('Could not load delivery options: $_errorMessage', style: const TextStyle(color: Colors.red))
-                  : Column(
-                      children: [
-                        RadioListTile<int>(
-                          value: 0,
-                          groupValue: _selectedOption,
-                          onChanged: (v) => setState(() => _selectedOption = v!),
-                          title: const Text('Drop Self'),
-                          subtitle: const Text('I will drop the device myself'),
-                          contentPadding: EdgeInsets.zero,
-                          activeColor: Colors.blue.shade600,
-                        ),
-                        RadioListTile<int>(
-                          value: 1,
-                          groupValue: _selectedOption,
-                          onChanged: (v) => setState(() => _selectedOption = v!),
-                          title: Text('Drop by Courier (₹$_deliveryCost)'),
-                          subtitle: const Text('A Borzo courier will pick it up'),
-                          contentPadding: EdgeInsets.zero,
-                          activeColor: Colors.blue.shade600,
-                        ),
-                      ],
-                    ),
+          Column(
+            children: [
+              RadioListTile<int>(
+                value: 0,
+                groupValue: _selectedOption,
+                onChanged: (v) => setState(() => _selectedOption = v!),
+                title: const Text('Drop Self'),
+                subtitle: const Text(
+                    'You will have to pick it up yourself from the store when ready'),
+                contentPadding: EdgeInsets.zero,
+                activeColor: Colors.blue.shade600,
+              ),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text('Courier unavailable: $_errorMessage',
+                      style: const TextStyle(color: Colors.red)),
+                )
+              else
+                RadioListTile<int>(
+                  value: 1,
+                  groupValue: _selectedOption,
+                  onChanged: (v) => setState(() => _selectedOption = v!),
+                  title: _isLoadingCost
+                      ? Row(
+                          children: const [
+                            Text('Drop by Courier'),
+                            SizedBox(width: 8),
+                            SizedBox(
+                                width: 12,
+                                height: 12,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)),
+                          ],
+                        )
+                      : Text(
+                          'Drop by Courier (Pickup+Return: ₹$_deliveryCost)'),
+                  subtitle: const Text(
+                      'A Borzo courier will pick up and return the device'),
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: Colors.blue.shade600,
+                ),
+            ],
+          ),
           if (_selectedOption == 1) ...[
             const SizedBox(height: 16),
             ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
                 side: BorderSide(color: Colors.grey.shade300),
@@ -995,14 +1094,19 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: _isSubmitting || _isLoadingCost ? null : _confirm,
+              onPressed:
+                  _isSubmitting || (_isLoadingCost && _selectedOption == 1)
+                      ? null
+                      : _confirm,
               child: _isSubmitting
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
                   : const Text('Confirm & Accept',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -1010,4 +1114,3 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
     );
   }
 }
-

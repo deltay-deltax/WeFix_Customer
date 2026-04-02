@@ -159,7 +159,7 @@ class RequestCard extends StatelessWidget {
                     ),
                 ],
               ),
-              if (request.status == 'in_progress') ...[
+              if (request.status == 'in_progress' && (request.borzoOrderId == null || request.borzoOrderId!.isEmpty)) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

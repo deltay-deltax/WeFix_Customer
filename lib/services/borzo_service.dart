@@ -18,10 +18,12 @@ class BorzoService {
     String type = 'standard', // 'standard' or 'endofday'
   }) async {
     try {
-      final HttpsCallable callable = _functions.httpsCallable('calculateBorzoOrder');
-      
+      final HttpsCallable callable =
+          _functions.httpsCallable('calculateBorzoOrder');
+
       final Map<String, dynamic> userPoint = {
         'address': userAddress,
+        'note': 'Exact Address: $userAddress',
         'contact_person': {
           'name': userName,
           'phone': userPhone,
@@ -34,6 +36,7 @@ class BorzoService {
 
       final Map<String, dynamic> shopPoint = {
         'address': shopAddress,
+        'note': 'Exact Address: $shopAddress',
         'contact_person': {
           'name': shopName,
           'phone': shopPhone,
@@ -73,10 +76,12 @@ class BorzoService {
     String type = 'standard',
   }) async {
     try {
-      final HttpsCallable callable = _functions.httpsCallable('createBorzoOrder');
+      final HttpsCallable callable =
+          _functions.httpsCallable('createBorzoOrder');
 
       final userPoint = <String, dynamic>{
         'address': userAddress,
+        'note': 'Exact Address: $userAddress',
         'contact_person': {
           'name': userName,
           'phone': userPhone,
@@ -96,6 +101,7 @@ class BorzoService {
 
       final shopPoint = <String, dynamic>{
         'address': shopAddress,
+        'note': 'Exact Address: $shopAddress',
         'contact_person': {
           'name': shopName,
           'phone': shopPhone,

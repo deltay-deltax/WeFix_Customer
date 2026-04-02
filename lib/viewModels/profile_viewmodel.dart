@@ -34,6 +34,8 @@ class ProfileViewModel extends ChangeNotifier {
   ];
 
   String? currentLocation;
+  double? currentLat;
+  double? currentLng;
   final _loc = LocationService();
   Map<String, dynamic>? fullAddress;
   final _picker = ImagePicker();
@@ -75,6 +77,8 @@ class ProfileViewModel extends ChangeNotifier {
     }
     final pos = await _loc.getCurrentPosition();
     if (pos != null) {
+      currentLat = pos.latitude;
+      currentLng = pos.longitude;
       currentLocation = await _loc.reverseGeocode(pos.latitude, pos.longitude);
       fullAddress = await _loc.getFullAddress();
       notifyListeners();

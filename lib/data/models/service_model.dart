@@ -12,6 +12,8 @@ class ServiceRequestModel {
   final String modelNumber;
   final String phone;
   final String pickupAddress;
+  final double? pickupLat;
+  final double? pickupLng;
   final String priority;
   final String problem;
   final String shopId;
@@ -27,6 +29,11 @@ class ServiceRequestModel {
   final String? borzoOrderId;
   final String? borzoTrackingUrl;
   final String? borzoStatus;
+  final String? borzoDeliveryCost;
+  final bool? reverseDropScheduled;
+  final String? reverseBorzoOrderId;
+  final String? reverseBorzoTrackingUrl;
+  final String? reverseBorzoStatus;
 
   ServiceRequestModel({
      this.id = '',
@@ -40,6 +47,8 @@ class ServiceRequestModel {
     required this.modelNumber,
     required this.phone,
     required this.pickupAddress,
+    this.pickupLat,
+    this.pickupLng,
     required this.priority,
     required this.problem,
     required this.shopId,
@@ -56,6 +65,11 @@ class ServiceRequestModel {
     this.borzoOrderId,
     this.borzoTrackingUrl,
     this.borzoStatus,
+    this.borzoDeliveryCost,
+    this.reverseDropScheduled,
+    this.reverseBorzoOrderId,
+    this.reverseBorzoTrackingUrl,
+    this.reverseBorzoStatus,
   });
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
@@ -73,6 +87,8 @@ class ServiceRequestModel {
       modelNumber: data['modelNumber'] ?? '',
       phone: data['phone'] ?? '',
       pickupAddress: data['pickupAddress'] ?? '',
+      pickupLat: (data['pickupLat'] as num?)?.toDouble(),
+      pickupLng: (data['pickupLng'] as num?)?.toDouble(),
       priority: data['priority'] ?? '',
       problem: data['problem'] ?? '',
       shopId: data['shopId'] ?? '',
@@ -86,9 +102,14 @@ class ServiceRequestModel {
           : null,
       rating: data['rating'] is int ? data['rating'] : null,
       review: data['review'] as String?,
-      borzoOrderId: data['borzoOrderId'] as String?,
-      borzoTrackingUrl: data['borzoTrackingUrl'] as String?,
-      borzoStatus: data['borzoStatus'] as String?,
+      borzoOrderId: data['borzoOrderId']?.toString(),
+      borzoTrackingUrl: data['borzoTrackingUrl']?.toString(),
+      borzoStatus: data['borzoStatus']?.toString(),
+      borzoDeliveryCost: data['borzoDeliveryCost']?.toString(),
+      reverseDropScheduled: data['reverseDropScheduled'] as bool?,
+      reverseBorzoOrderId: data['reverseBorzoOrderId']?.toString(),
+      reverseBorzoTrackingUrl: data['reverseBorzoTrackingUrl']?.toString(),
+      reverseBorzoStatus: data['reverseBorzoStatus']?.toString(),
     );
   }
 
@@ -104,6 +125,8 @@ class ServiceRequestModel {
       'modelNumber': modelNumber,
       'phone': phone,
       'pickupAddress': pickupAddress,
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
       'priority': priority,
       'problem': problem,
       'shopId': shopId,
@@ -118,6 +141,11 @@ class ServiceRequestModel {
       'borzoOrderId': borzoOrderId,
       'borzoTrackingUrl': borzoTrackingUrl,
       'borzoStatus': borzoStatus,
+      'borzoDeliveryCost': borzoDeliveryCost,
+      'reverseDropScheduled': reverseDropScheduled,
+      'reverseBorzoOrderId': reverseBorzoOrderId,
+      'reverseBorzoTrackingUrl': reverseBorzoTrackingUrl,
+      'reverseBorzoStatus': reverseBorzoStatus,
     };
   }
 }
