@@ -122,6 +122,26 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
   }
 
   void _showAcceptBottomSheet(ServiceRequestModel req) {
+    // Heavy appliances (Fridge, AC, Washer, TV) go through home-visit flow:
+    // the customer schedules a visit rather than dropping the device off.
+    if (req.isHeavyAppliance == true) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: _HeavyApplianceScheduleSheet(
+            req: req,
+            onStatusUpdate: (status) => _updateStatus(req, status),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Portable devices (Laptop, Mobile, etc.) — existing self-drop / courier sheet.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -321,7 +341,16 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [],
+                      children: [
+                        Text(
+                          req.shopName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   _StatusPill(status: req.status),
@@ -452,7 +481,10 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                 ),
               ],
 
+              // In-progress banner — only shown for PORTABLE devices (no Borzo order yet).
+              // Heavy appliances (home-visit flow) skip this entirely.
               if (req.status == 'in_progress' &&
+                  (req.isHeavyAppliance != true) &&
                   (req.borzoOrderId == null || req.borzoOrderId!.isEmpty)) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -490,11 +522,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                           final gmapUrl = shopData['gmapUrl'] as String?;
 
                           if (gmapUrl != null && gmapUrl.isNotEmpty) {
-                            return IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              icon: const Icon(Icons.location_on,
-                                  color: Colors.red, size: 28),
+                            return ElevatedButton.icon(
                               onPressed: () async {
                                 final uri = Uri.parse(gmapUrl);
                                 if (await canLaunchUrl(uri)) {
@@ -502,6 +530,18 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                                       mode: LaunchMode.externalApplication);
                                 }
                               },
+                              icon: const Icon(Icons.map_rounded, size: 16),
+                              label: const Text('Shop Location', style: TextStyle(fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.blue.shade700,
+                                elevation: 0,
+                                side: BorderSide(color: Colors.blue.shade200),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
                             );
                           } else {
                             // Render a disabled icon so the user knows there is no location provided
@@ -663,6 +703,215 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Heavy-appliance schedule sheet
+// Shown when customer taps Accept on a waiting_for_confirmation heavy-appliance
+// request.  No courier involved — the customer just picks a visit date+time.
+// ─────────────────────────────────────────────────────────────────────────────
+class _HeavyApplianceScheduleSheet extends StatefulWidget {
+  final ServiceRequestModel req;
+  final Function(String) onStatusUpdate;
+
+  const _HeavyApplianceScheduleSheet(
+      {Key? key, required this.req, required this.onStatusUpdate})
+      : super(key: key);
+
+  @override
+  State<_HeavyApplianceScheduleSheet> createState() =>
+      _HeavyApplianceScheduleSheetState();
+}
+
+class _HeavyApplianceScheduleSheetState
+    extends State<_HeavyApplianceScheduleSheet> {
+  DateTime? _selectedDate;
+  bool _isSubmitting = false;
+
+  Future<void> _pickDateTime() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+    );
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+    );
+    if (t == null) return;
+    setState(() {
+      _selectedDate = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+    });
+  }
+
+  Future<void> _confirm() async {
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a visit date & time')),
+      );
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('shop_users')
+          .doc(widget.req.shopId)
+          .collection('requests')
+          .doc(widget.req.id)
+          .update({
+        'visitScheduledAt': Timestamp.fromDate(_selectedDate!),
+        'visitConfirmedByUser': true,
+      });
+      widget.onStatusUpdate('in_progress');
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = widget.req.amount.isEmpty ? '—' : '₹${widget.req.amount}';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Schedule a Home Visit',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'The service provider will come to your location to inspect and fix your ${widget.req.deviceType}.',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13.5),
+          ),
+          const SizedBox(height: 20),
+
+          // Quoted amount
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.currency_rupee, color: Colors.green.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Quoted Service Amount',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey)),
+                      Text(
+                        amount,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Date + time picker
+          GestureDetector(
+            onTap: _pickDateTime,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today_outlined,
+                      color: Colors.blue),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _selectedDate == null
+                          ? 'Tap to choose visit date & time'
+                          : DateFormat('EEE, d MMM yyyy  •  h:mm a')
+                              .format(_selectedDate!),
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        color: _selectedDate == null
+                            ? Colors.grey
+                            : Colors.black87,
+                        fontWeight: _selectedDate != null
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: _isSubmitting ? null : _confirm,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : const Text(
+                      'Confirm Visit & Accept Amount',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15),
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }

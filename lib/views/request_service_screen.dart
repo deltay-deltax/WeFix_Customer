@@ -7,6 +7,35 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_routes.dart';
 
+/// Keywords used to classify a request as a heavy-appliance home-visit job.
+/// These match the subcategories defined in search_screen.dart.
+const Set<String> _kHeavyKeywords = {
+  'fridge',
+  'refrigerator',
+  'washing machine',
+  'air conditioner',
+  ' ac ',
+  'a.c',
+  'smart tv',
+  'led tv',
+  'television',
+  'tv',
+  'water purifier',
+  'ro system',
+  'geyser',
+  'water heater',
+  'dishwasher',
+  'chimney',
+  'exhaust fan',
+  'air cooler',
+  'inverter',
+};
+
+bool _isHeavyAppliance(String deviceType) {
+  final lower = ' ${deviceType.toLowerCase().trim()} ';
+  return _kHeavyKeywords.any((kw) => lower.contains(kw));
+}
+
 enum _FieldStyle { orange, blueOnFocus }
 
 class RequestServiceScreen extends StatefulWidget {
@@ -34,11 +63,49 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
   bool loading = false;
   final _picker = ImagePicker();
   final List<XFile> _images = [];
+  List<String> _subcategories = [];
+  bool _isLoadingSubcategories = true;
+  String? _selectedDeviceType;
 
   @override
   void initState() {
     super.initState();
     _prefillUser();
+    _fetchSubcategories();
+  }
+
+  Future<void> _fetchSubcategories() async {
+    final shopId = widget.data['shopId'] as String?;
+    if (shopId == null) {
+      if (mounted) setState(() => _isLoadingSubcategories = false);
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('registered_shop_users')
+          .doc(shopId)
+          .get();
+      
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final subs = data['subcategories'];
+        if (subs is List) {
+          setState(() {
+            _subcategories = List<String>.from(subs);
+            // If there's only one, or if we want to pre-select the first one
+            if (_subcategories.isNotEmpty) {
+              _selectedDeviceType = _subcategories.first;
+              deviceTypeCtrl.text = _selectedDeviceType!;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching subcategories: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingSubcategories = false);
+    }
   }
 
   Widget _imagePickerRow() {
@@ -166,42 +233,106 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _field(
-              'Device Type',
-              deviceTypeCtrl,
-              required: true,
-              style: _FieldStyle.orange,
-            ),
+            if (_isLoadingSubcategories)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: LinearProgressIndicator(),
+              )
+            else if (_subcategories.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedDeviceType,
+                  decoration: InputDecoration(
+                    labelText: 'Device Type',
+                    filled: true,
+                    fillColor: AppColors.inputFill,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: AppColors.primary2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: AppColors.primary2.withOpacity(.6),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary2,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  items: _subcategories.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedDeviceType = newValue;
+                      deviceTypeCtrl.text = newValue ?? '';
+                    });
+                  },
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Device Type is required' : null,
+                ),
+              )
+            else
+              _field(
+                'Device Type',
+                deviceTypeCtrl,
+                required: true,
+                style: _FieldStyle.orange,
+              ),
             _field(
               'Brand',
               brandCtrl,
               required: true,
               style: _FieldStyle.blueOnFocus,
+              hint: 'e.g., Apple, Samsung, Dell',
             ),
-            _field('Model Name', modelNameCtrl, style: _FieldStyle.blueOnFocus),
+            _field(
+              'Model Name', 
+              modelNameCtrl, 
+              style: _FieldStyle.blueOnFocus,
+              hint: 'e.g., iPhone 13, Galaxy S21, Latitude 5420',
+            ),
             _field(
               'Model Number',
               modelNumberCtrl,
               style: _FieldStyle.blueOnFocus,
+              hint: 'e.g., A2633, SM-G991B',
             ),
             _field(
               'Problem',
               problemCtrl,
               required: true,
               style: _FieldStyle.blueOnFocus,
+              hint: 'e.g., Screen cracked, Battery draining fast',
             ),
             _field(
               'Description',
               descriptionCtrl,
               maxLines: 3,
               style: _FieldStyle.blueOnFocus,
+              hint: 'Provide more details about the issue...',
             ),
-            _field('Your Name', yourNameCtrl, style: _FieldStyle.blueOnFocus),
+            _field(
+              'Your Name', 
+              yourNameCtrl, 
+              style: _FieldStyle.blueOnFocus,
+              hint: 'Your full name',
+            ),
             _field(
               'Phone',
               phoneCtrl,
               keyboardType: TextInputType.phone,
               style: _FieldStyle.blueOnFocus,
+              hint: 'Your contact number',
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -226,6 +357,7 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
                     pickupCtrl,
                     maxLines: 3,
                     style: _FieldStyle.blueOnFocus,
+                    hint: 'Select or type your pickup address',
                   ),
                 ),
               ),
@@ -296,6 +428,7 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
     int maxLines = 1,
     TextInputType? keyboardType,
     _FieldStyle style = _FieldStyle.blueOnFocus,
+    String? hint,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -309,6 +442,7 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
             : null,
         decoration: InputDecoration(
           labelText: label,
+          hintText: hint,
           filled: true,
           fillColor: AppColors.inputFill,
           border: OutlineInputBorder(
@@ -388,6 +522,7 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
         'priority': priority,
         'images': imageUrls,
         'status': 'Pending',
+        'isHeavyAppliance': _isHeavyAppliance(deviceTypeCtrl.text.trim()),
         'createdAt': FieldValue.serverTimestamp(),
       });
       if (!mounted) return;

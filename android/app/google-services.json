@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "670452211833-ermk06i8de2hjec324mjbodjuojkqv0o.apps.googleusercontent.com",
+          "client_id": "670452211833-7l8bqps0mccpj16khiivcg5uahei8p5n.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.wefix",
-            "certificate_hash": "ad4b551731ed143a514c46fbf68c46adcd0ecc0b"
+            "certificate_hash": "662bfb3d96df527abb300afa2f178f0ae16e9ec5"
           }
         },
         {
@@ -51,11 +51,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "670452211833-9utiqj2f164ao18upr8oh1cqaagon084.apps.googleusercontent.com",
+          "client_id": "670452211833-8rpfo1ltpnq8vmlhv8srrjof7id89654.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.wefix_shop",
-            "certificate_hash": "ad4b551731ed143a514c46fbf68c46adcd0ecc0b"
+            "certificate_hash": "662bfb3d96df527abb300afa2f178f0ae16e9ec5"
           }
         },
         {

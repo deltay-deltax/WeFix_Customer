@@ -86,6 +86,21 @@ class RequestCard extends StatelessWidget {
                         fontSize: 15,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.store_outlined, size: 14, color: Colors.blue.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          request.shopName,
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 Text(formattedDate, style: TextStyle(color: Colors.grey[600])),

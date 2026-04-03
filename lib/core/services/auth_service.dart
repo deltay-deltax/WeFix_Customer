@@ -9,19 +9,36 @@ class AuthService {
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 
-  /// Helper method to create or update user data in Firestore
-  Future<void> _updateUserFirestore(User user) async {
+  /// Helper method to create or update base user data in Firestore.
+  /// Pass [googleAccount] to also persist the Google display name on first sign-in.
+  Future<void> _updateUserFirestore(
+    User user, {
+    GoogleSignInAccount? googleAccount,
+  }) async {
     final docRef = _firestore.collection('users').doc(user.uid);
 
-    await docRef.set(
-      {
-        'email': user.email,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'createdAt':
-            FieldValue.serverTimestamp(), // This is only set on creation
-      },
-      SetOptions(merge: true),
-    ); // merge:true ensures we don't overwrite existing data
+    // Base fields always written (merge keeps existing data intact)
+    final Map<String, dynamic> data = {
+      'email': user.email,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(), // only set on first create
+    };
+
+    // For Google sign-in: persist name from Google profile IF the Firestore
+    // document doesn't already have a name set by the user.
+    if (googleAccount != null) {
+      final snap = await docRef.get();
+      final existing = snap.data();
+      final hasName = existing != null &&
+          ((existing['name'] ?? existing['Name'] ?? '').toString().isNotEmpty);
+
+      if (!hasName && googleAccount.displayName != null && googleAccount.displayName!.isNotEmpty) {
+        data['name'] = googleAccount.displayName;
+      }
+      // Google doesn't provide a phone number, so we leave 'phone' untouched.
+    }
+
+    await docRef.set(data, SetOptions(merge: true));
   }
 
   /// Sign in with email and password
@@ -35,7 +52,8 @@ class AuthService {
   /// Sign up with email and password
   Future<UserCredential> signUpWithEmail(String email, String password) async {
     // 1. Create user in Firebase Auth
-    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+    final UserCredential userCredential =
+        await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
@@ -49,11 +67,8 @@ class AuthService {
 
   /// Sign in or Sign up with Google
   Future<UserCredential> signInWithGoogle() async {
-    // 1. Trigger Google Sign-In flow
-    // The signOut call here is sometimes used to force account selection
-    await _googleSignIn.signOut().catchError(
-          (_) {},
-        ); // Ignore errors if already signed out
+    // 1. Trigger Google Sign-In flow (signOut forces account-picker)
+    await _googleSignIn.signOut().catchError((_) {});
 
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
@@ -69,13 +84,15 @@ class AuthService {
     );
 
     // 3. Sign in to Firebase Auth
-    final UserCredential userCredential = await _auth.signInWithCredential(
-      credential,
-    );
+    final UserCredential userCredential =
+        await _auth.signInWithCredential(credential);
 
-    // 4. Create/update user document in Firestore
+    // 4. Create/update Firestore doc — pass googleUser so name is saved
     if (userCredential.user != null) {
-      await _updateUserFirestore(userCredential.user!);
+      await _updateUserFirestore(
+        userCredential.user!,
+        googleAccount: googleUser,
+      );
     }
     return userCredential;
   }

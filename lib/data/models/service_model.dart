@@ -35,6 +35,11 @@ class ServiceRequestModel {
   final String? reverseBorzoTrackingUrl;
   final String? reverseBorzoStatus;
 
+  // ── Home-visit flow (heavy appliances: Fridge, AC, Washer, TV) ──
+  final bool? isHeavyAppliance;      // Set at creation time based on deviceType
+  final DateTime? visitScheduledAt;  // Date+time the customer scheduled for technician visit
+  final bool? visitConfirmedByUser;  // True once customer accepts amount & picks a slot
+
   ServiceRequestModel({
      this.id = '',
     required this.amount,
@@ -70,6 +75,9 @@ class ServiceRequestModel {
     this.reverseBorzoOrderId,
     this.reverseBorzoTrackingUrl,
     this.reverseBorzoStatus,
+    this.isHeavyAppliance,
+    this.visitScheduledAt,
+    this.visitConfirmedByUser,
   });
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
@@ -110,6 +118,9 @@ class ServiceRequestModel {
       reverseBorzoOrderId: data['reverseBorzoOrderId']?.toString(),
       reverseBorzoTrackingUrl: data['reverseBorzoTrackingUrl']?.toString(),
       reverseBorzoStatus: data['reverseBorzoStatus']?.toString(),
+      isHeavyAppliance: data['isHeavyAppliance'] as bool?,
+      visitScheduledAt: (data['visitScheduledAt'] as Timestamp?)?.toDate(),
+      visitConfirmedByUser: data['visitConfirmedByUser'] as bool?,
     );
   }
 
@@ -146,6 +157,9 @@ class ServiceRequestModel {
       'reverseBorzoOrderId': reverseBorzoOrderId,
       'reverseBorzoTrackingUrl': reverseBorzoTrackingUrl,
       'reverseBorzoStatus': reverseBorzoStatus,
+      'isHeavyAppliance': isHeavyAppliance,
+      'visitScheduledAt': visitScheduledAt != null ? Timestamp.fromDate(visitScheduledAt!) : null,
+      'visitConfirmedByUser': visitConfirmedByUser,
     };
   }
 }

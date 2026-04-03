@@ -159,17 +159,51 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      ProfileActionTile(
-                        icon: Icons.engineering,
-                        label: "Book a Technician",
-                        onTap: () => _showComingSoon(context),
-                      ),
+                    
                       ProfileActionTile(
                         icon: Icons.verified_user,
                         label: "Record Warranty",
                         onTap: () {
                           Navigator.pushNamed(context, AppRoutes.warranty);
                         },
+                      ),
+                        ProfileActionTile(
+                        icon: Icons.report_problem_outlined,
+                        label: "Raise a Complaint",
+                        iconColor: Colors.redAccent,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RaiseComplaintScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      ProfileActionTile(
+                        icon: Icons.assignment_late_outlined,
+                        label: "My Complaints",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MyComplaintsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                         ProfileActionTile(
+                        icon: Icons.location_on_outlined,
+                        label: "My Address",
+                        onTap: () {
+                          Navigator.pushNamed(
+                              context, AppRoutes.manageAddresses);
+                        },
+                      ),  ProfileActionTile(
+                        icon: Icons.engineering,
+                        label: "Book a Technician",
+                        onTap: () => _showComingSoon(context),
                       ),
                       ProfileActionTile(
                         icon: Icons.security_update_good,
@@ -183,7 +217,10 @@ class ProfileScreen extends StatelessWidget {
                           );
                         },
                       ),
-                      ProfileActionTile(
+                   
+                    
+                   
+                         ProfileActionTile(
                         icon: Icons.description_outlined,
                         label: "Terms of Use",
                         onTap: () {
@@ -203,39 +240,6 @@ class ProfileScreen extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (_) => const ContactUsScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      ProfileActionTile(
-                        icon: Icons.report_problem_outlined,
-                        label: "Raise a Complaint",
-                        iconColor: Colors.redAccent,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RaiseComplaintScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      ProfileActionTile(
-                        icon: Icons.location_on_outlined,
-                        label: "My Address",
-                        onTap: () {
-                          Navigator.pushNamed(
-                              context, AppRoutes.manageAddresses);
-                        },
-                      ),
-                      ProfileActionTile(
-                        icon: Icons.assignment_late_outlined,
-                        label: "My Complaints",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const MyComplaintsScreen(),
                             ),
                           );
                         },

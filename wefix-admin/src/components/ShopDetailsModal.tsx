@@ -18,6 +18,7 @@ const ShopDetailsModal: React.FC<ShopDetailsModalProps> = ({ shop, onClose, onTo
         ratingsCount: 0,
         complaints: 0,
     });
+    const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -27,6 +28,7 @@ const ShopDetailsModal: React.FC<ShopDetailsModalProps> = ({ shop, onClose, onTo
             let ratingsSum = 0;
             let ratingsCount = 0;
             let complaintsCount = 0;
+            const fetchedReviews: any[] = [];
 
             try {
                 // Fetch Requests to calculate earnings using completed statuses
@@ -56,7 +58,16 @@ const ShopDetailsModal: React.FC<ShopDetailsModalProps> = ({ shop, onClose, onTo
                         ratingsSum += r;
                         ratingsCount++;
                     }
+                    fetchedReviews.push({ id: doc.id, ...data });
                 });
+                
+                // Sort reviews by date desc
+                fetchedReviews.sort((a, b) => {
+                    const da = a.ratedAt?.toMillis() || 0;
+                    const db = b.ratedAt?.toMillis() || 0;
+                    return db - da;
+                });
+                setReviews(fetchedReviews);
             } catch (err) {
                 console.error("Error fetching ratings:", err);
             }
@@ -241,6 +252,59 @@ const ShopDetailsModal: React.FC<ShopDetailsModalProps> = ({ shop, onClose, onTo
                                 {shop.createdAt ? new Date(shop.createdAt.toMillis()).toLocaleString() : 'N/A'}
                             </div>
                         </div>
+                    </div>
+
+                    <div style={{ marginTop: '3rem' }}>
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
+                            Customer Feedback
+                        </h3>
+                        
+                        {reviews.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)', background: '#f8fafc', borderRadius: 'var(--radius)' }}>
+                                No reviews yet.
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {reviews.map((rev) => (
+                                    <div key={rev.id} style={{ 
+                                        padding: '1.25rem', 
+                                        background: 'white', 
+                                        borderRadius: 'var(--radius)', 
+                                        border: '1px solid var(--border)',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem', fontWeight: '600' }}>
+                                                    {rev.userName ? rev.userName.charAt(0).toUpperCase() : '?'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>{rev.userName || 'Anonymous'}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                        {rev.ratedAt ? new Date(rev.ratedAt.toMillis()).toLocaleDateString() : 'Unknown Date'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '2px' }}>
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star 
+                                                        key={i} 
+                                                        size={14} 
+                                                        fill={i < rev.rating ? "#f59e0b" : "none"} 
+                                                        color={i < rev.rating ? "#f59e0b" : "#cbd5e1"} 
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {rev.review && (
+                                            <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', margin: 0, fontStyle: 'italic', lineHeight: '1.5' }}>
+                                                "{rev.review}"
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

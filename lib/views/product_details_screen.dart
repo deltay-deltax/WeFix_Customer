@@ -21,16 +21,14 @@ class ProductDetailsScreen extends StatelessWidget {
         ),
         actions: [if (shopId != null) _FavoriteHeart(shopId: shopId)],
       ),
-      body: shopId == null
-          ? _fallbackBody(context)
-          : _shopBody(context, shopId),
+      body:
+          shopId == null ? _fallbackBody(context) : _shopBody(context, shopId),
     );
   }
 
   Widget _shopBody(BuildContext context, String shopId) {
-    final shopDoc = FirebaseFirestore.instance
-        .collection('shop_users')
-        .doc(shopId);
+    final shopDoc =
+        FirebaseFirestore.instance.collection('shop_users').doc(shopId);
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: shopDoc.snapshots(),
       builder: (context, shopSnap) {
@@ -38,28 +36,35 @@ class ProductDetailsScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         final data = shopSnap.data!.data() ?? {};
-        final title =
-            (data['companyLegalName'] ??
-                    data['companyLegalname'] ??
-                    data['companylegalName'] ??
-                    'Shop')
-                .toString();
-        
-        final initialImage = (ModalRoute.of(context)!.settings.arguments as Map?)?['image'] as String?;
+        final title = (data['companyLegalName'] ??
+                data['companyLegalname'] ??
+                data['companylegalName'] ??
+                'Shop')
+            .toString();
+
+        final initialImage = (ModalRoute.of(context)!.settings.arguments
+            as Map?)?['image'] as String?;
         final description = (data['shopDescription'] ?? '').toString();
 
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
             FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance.collection('registered_shop_users').doc(shopId).get(),
+              future: FirebaseFirestore.instance
+                  .collection('registered_shop_users')
+                  .doc(shopId)
+                  .get(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const AspectRatio(aspectRatio: 16/10, child: Center(child: CircularProgressIndicator()));
+                  return const AspectRatio(
+                      aspectRatio: 16 / 10,
+                      child: Center(child: CircularProgressIndicator()));
                 }
                 final regData = snapshot.data?.data() as Map<String, dynamic>?;
                 final image = ShopImageHelper.getImage(regData);
-                final photos = regData?['photos'] is List ? (regData!['photos'] as List).cast<String>() : [];
+                final photos = regData?['photos'] is List
+                    ? (regData!['photos'] as List).cast<String>()
+                    : [];
 
                 final allImages = <String>[];
                 if (image != null && image.isNotEmpty) allImages.add(image);
@@ -92,268 +97,316 @@ class ProductDetailsScreen extends StatelessWidget {
                 ),
                 if (data['gmapUrl'] != null &&
                     (data['gmapUrl'] as String).isNotEmpty)
-                  InkWell(
-                    onTap: () => _launchMapUrl(data['gmapUrl'] as String),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
+                  OutlinedButton.icon(
+                    onPressed: () => _launchMapUrl(data['gmapUrl'] as String),
+                    icon: const Icon(Icons.map_rounded, size: 18),
+                    label: const Text('View on Map'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Icon(
-                        Icons.location_on,
-                        color: AppColors.primary,
-                        size: 24,
-                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 6),
-            
+
             // --- UPDATED: Dynamic Ratings ---
             StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: shopDoc.collection('ratings').snapshots(),
-              builder: (context, ratingSnap) {
-                final ratings = ratingSnap.data?.docs ?? [];
-                double avg = 0;
-                if (ratings.isNotEmpty) {
-                  final total = ratings.fold<double>(
-                      0, (sum, doc) => sum + (doc.data()['rating'] ?? 0));
-                  avg = total / ratings.length;
-                }
-                
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                         const Icon(Icons.star, color: Colors.amber, size: 20),
-                         const SizedBox(width: 4),
-                         Text(
-                           ratings.isEmpty ? 'New' : '${avg.toStringAsFixed(1)}  •  ${ratings.length} ratings',
-                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                         ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    if (description.isNotEmpty) ...[
-                      const Text(
-                        'Description',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(description),
-                      const SizedBox(height: 12),
-                    ],
-                    
-                    const Text(
-                      'Services',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'These are estimated prices, may vary depending on problem intensity.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
-                    ),
-                    const SizedBox(height: 10),
-                    StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      stream: shopDoc.collection('services').snapshots(),
-                      builder: (context, svcSnap) {
-                        if (svcSnap.connectionState == ConnectionState.waiting) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-                        final svcs = svcSnap.data?.docs ?? [];
-                        if (svcs.isEmpty) {
-                          return const Text('No services listed');
-                        }
-                        return Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: svcs.map((d) {
-                            final s = d.data();
-                            final name = (s['name'] ?? 'Service').toString();
-                            final amount = s['amount'];
-                            final price = amount == null ? '-' : '₹$amount';
-                            return _servicePill(name, price);
-                          }).toList(),
-                        );
-                      },
-                    ),
-                    
-                    const SizedBox(height: 18),
-                    // Updated Action Buttons with Orange Color
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepOrange,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: () async {
-                              final id = await _createOrOpenChat(
-                                shopId,
-                                title,
-                                initialImage,
-                              );
-                              if (id == null) return;
-                              if (!context.mounted) return;
-                              Navigator.pushNamed(
-                                context,
-                                AppRoutes.chatDetail,
-                                arguments: {
-                                  'chatId': id,
-                                  'title': title,
-                                  'image': initialImage,
-                                },
-                              );
-                            },
-                            icon: const Icon(Icons.chat_bubble_outline),
-                            label: const Text('Chat'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onPressed: () => Navigator.pushNamed(
-                              context,
-                              AppRoutes.requestService,
-                              arguments: {'shopId': shopId},
-                            ),
-                            icon: const Icon(
-                              Icons.assignment_turned_in_outlined,
-                            ),
-                            label: const Text('Request'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // --- Top 5 Ratings Section ---
-                     // --- Top 5 Ratings Section ---
-                    if (ratings.isNotEmpty) ...[
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          'Recent Reviews',
-                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      ...ratings.take(5).map((d) {
-                         final rData = d.data();
-                         final rVal = rData['rating'] ?? 0;
-                         final rName = rData['userName'] ?? 'User';
-                         final rAvatar = rData['userAvatar'] as String?;
-                         final rReview = rData['review'] as String?;
-                         final rDate = rData['ratedAt'] as Timestamp?;
+                stream: shopDoc.collection('ratings').snapshots(),
+                builder: (context, ratingSnap) {
+                  final ratings = ratingSnap.data?.docs ?? [];
+                  double avg = 0;
+                  if (ratings.isNotEmpty) {
+                    final total = ratings.fold<double>(
+                        0, (sum, doc) => sum + (doc.data()['rating'] ?? 0));
+                    avg = total / ratings.length;
+                  }
 
-                         return Container(
-                           margin: const EdgeInsets.only(bottom: 16),
-                           padding: const EdgeInsets.all(16),
-                           decoration: BoxDecoration(
-                             color: Colors.white,
-                             borderRadius: BorderRadius.circular(20),
-                             boxShadow: [
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 20),
+                          const SizedBox(width: 4),
+                          Text(
+                            ratings.isEmpty
+                                ? 'New'
+                                : '${avg.toStringAsFixed(1)}  •  ${ratings.length} ratings',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+                      if (description.isNotEmpty) ...[
+                        const Text(
+                          'Description',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(description),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // Action Buttons (Always visible)
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepOrange,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              onPressed: () async {
+                                final id = await _createOrOpenChat(
+                                  shopId,
+                                  title,
+                                  initialImage,
+                                );
+                                if (id == null) return;
+                                if (!context.mounted) return;
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.chatDetail,
+                                  arguments: {
+                                    'chatId': id,
+                                    'title': title,
+                                    'image': initialImage,
+                                  },
+                                );
+                              },
+                              icon: const Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 20),
+                              label: const Text('Chat',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              onPressed: () => Navigator.pushNamed(
+                                context,
+                                AppRoutes.requestService,
+                                arguments: {'shopId': shopId},
+                              ),
+                              icon: const Icon(
+                                Icons.assignment_turned_in_outlined,
+                                size: 20,
+                              ),
+                              label: const Text('Request',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      const Text(
+                        'Services',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'These are estimated prices, may vary depending on problem intensity.',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontStyle: FontStyle.italic),
+                      ),
+                      const SizedBox(height: 10),
+                      StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        stream: shopDoc.collection('services').snapshots(),
+                        builder: (context, svcSnap) {
+                          if (svcSnap.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          final svcs = svcSnap.data?.docs ?? [];
+                          if (svcs.isEmpty) {
+                            return const Text('No services listed');
+                          }
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: svcs.map((d) {
+                              final s = d.data();
+                              final name = (s['name'] ?? 'Service').toString();
+                              final amount = s['amount'];
+                              final price = amount == null ? '-' : '₹$amount';
+                              return _servicePill(name, price);
+                            }).toList(),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // --- Top 5 Ratings Section ---
+                      // --- Top 5 Ratings Section ---
+                      if (ratings.isNotEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Recent Reviews',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        ...ratings.take(5).map((d) {
+                          final rData = d.data();
+                          final rVal = rData['rating'] ?? 0;
+                          final rName = rData['userName'] ?? 'User';
+                          final rAvatar = rData['userAvatar'] as String?;
+                          final rReview = rData['review'] as String?;
+                          final rDate = rData['ratedAt'] as Timestamp?;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.03),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 )
-                             ],
-                             border: Border.all(color: Colors.grey.shade100),
-                           ),
-                           child: Column(
-                             crossAxisAlignment: CrossAxisAlignment.start,
-                             children: [
-                               Row(
-                                 children: [
-                                   Container(
-                                     width: 42,
-                                     height: 42,
-                                     decoration: BoxDecoration(
-                                       shape: BoxShape.circle,
-                                       color: (rAvatar == null || rAvatar.isEmpty) 
-                                           ? AppColors.primary2.withOpacity(0.1)
-                                           : Colors.grey.shade200,
-                                       image: (rAvatar != null && rAvatar.isNotEmpty)
-                                         ? DecorationImage(
-                                             image: NetworkImage(rAvatar), 
-                                             fit: BoxFit.cover,
-                                             onError: (_, __) {} // Prevent crash on invalid URL
-                                           )
-                                         : null,
-                                     ),
-                                     alignment: Alignment.center,
-                                     child: (rAvatar == null || rAvatar.isEmpty)
-                                       ? Text(
-                                           rName.isNotEmpty ? rName.substring(0, 1).toUpperCase() : 'U',
-                                           style: const TextStyle(
-                                             color: AppColors.primary2, 
-                                             fontWeight: FontWeight.bold,
-                                             fontSize: 18
-                                           ),
-                                         )
-                                       : null,
-                                   ),
-                                   const SizedBox(width: 12),
-                                   Expanded(
-                                     child: Column(
-                                       crossAxisAlignment: CrossAxisAlignment.start,
-                                       children: [
-                                         Text(
-                                            rName.isNotEmpty ? rName : 'Anonymous', 
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)
-                                         ),
-                                         const SizedBox(height: 4),
-                                         Row(
-                                          children: [
-                                             ...List.generate(5, (i) => Icon(
-                                               i < rVal ? Icons.star_rounded : Icons.star_outline_rounded,
-                                               size: 14,
-                                               color: AppColors.primary2,
-                                             )),
-                                             if (rDate != null) ...[
-                                               const SizedBox(width: 8),
-                                               Text(
-                                                 _formatDate(rDate),
-                                                 style: TextStyle(
-                                                   color: Colors.grey.shade500,
-                                                   fontSize: 11,
-                                                   fontWeight: FontWeight.w500
-                                                 ),
-                                               ),
-                                             ]
-                                           ],
-                                         )
-                                       ],
-                                     ),
-                                   ),
-                                 ],
-                               ),
-                               if (rReview != null && rReview.isNotEmpty) ...[
+                              ],
+                              border: Border.all(color: Colors.grey.shade100),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 42,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color:
+                                            (rAvatar == null || rAvatar.isEmpty)
+                                                ? AppColors.primary2
+                                                    .withOpacity(0.1)
+                                                : Colors.grey.shade200,
+                                        image: (rAvatar != null &&
+                                                rAvatar.isNotEmpty)
+                                            ? DecorationImage(
+                                                image: NetworkImage(rAvatar),
+                                                fit: BoxFit.cover,
+                                                onError: (_,
+                                                    __) {} // Prevent crash on invalid URL
+                                                )
+                                            : null,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: (rAvatar == null ||
+                                              rAvatar.isEmpty)
+                                          ? Text(
+                                              rName.isNotEmpty
+                                                  ? rName
+                                                      .substring(0, 1)
+                                                      .toUpperCase()
+                                                  : 'U',
+                                              style: const TextStyle(
+                                                  color: AppColors.primary2,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18),
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              rName.isNotEmpty
+                                                  ? rName
+                                                  : 'Anonymous',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                  color:
+                                                      AppColors.textPrimary)),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              ...List.generate(
+                                                  5,
+                                                  (i) => Icon(
+                                                        i < rVal
+                                                            ? Icons.star_rounded
+                                                            : Icons
+                                                                .star_outline_rounded,
+                                                        size: 14,
+                                                        color:
+                                                            AppColors.primary2,
+                                                      )),
+                                              if (rDate != null) ...[
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  _formatDate(rDate),
+                                                  style: TextStyle(
+                                                      color:
+                                                          Colors.grey.shade500,
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                              ]
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (rReview != null && rReview.isNotEmpty) ...[
                                   const SizedBox(height: 12),
                                   Container(
                                     width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 14),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.03), // Subtle blue tint instead of grey
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.primary.withOpacity(0.08))
-                                    ),
+                                        color: AppColors.primary.withOpacity(
+                                            0.03), // Subtle blue tint instead of grey
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                            color: AppColors.primary
+                                                .withOpacity(0.08))),
                                     child: Text(
                                       rReview,
                                       style: const TextStyle(
@@ -363,16 +416,15 @@ class ProductDetailsScreen extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                               ]
-                             ],
-                           ),
-                         );
-                      }).toList(),
+                                ]
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ],
                     ],
-                  ],
-                );
-              }
-            ),
+                  );
+                }),
           ],
         );
       },
@@ -380,7 +432,7 @@ class ProductDetailsScreen extends StatelessWidget {
   }
 
   Widget _fallbackBody(BuildContext context) {
-      // Keeping fallback simple or could update similarly if needed
+    // Keeping fallback simple or could update similarly if needed
     final title = (data['title'] as String?) ?? 'Shop';
     final image = data['image'] as String?;
     return ListView(
@@ -394,38 +446,42 @@ class ProductDetailsScreen extends StatelessWidget {
           child: AspectRatio(
             aspectRatio: 16 / 10,
             child: image != null && image.isNotEmpty
-                ? Image.network(image, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder())
+                ? Image.network(image,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _placeholder())
                 : _placeholder(),
           ),
         ),
         const SizedBox(height: 12),
-        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        Text(title,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
         const SizedBox(height: 18),
         Row(
           children: [
-             Expanded(
-               child: ElevatedButton.icon(
-                 style: ElevatedButton.styleFrom(
-                   backgroundColor: Colors.deepOrange,
-                   foregroundColor: Colors.white,
-                 ),
-                 onPressed: () {},
-                 icon: const Icon(Icons.chat_bubble_outline),
-                 label: const Text('Chat'),
-               ),
-             ),
-             const SizedBox(width: 12),
-             Expanded(
-               child: ElevatedButton.icon(
-                 style: ElevatedButton.styleFrom(
-                   backgroundColor: Colors.orange,
-                   foregroundColor: Colors.white,
-                 ),
-                 onPressed: () => Navigator.pushNamed(context, AppRoutes.requestService),
-                 icon: const Icon(Icons.assignment_turned_in_outlined),
-                 label: const Text('Request'),
-               ),
-             ),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {},
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: const Text('Chat'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.requestService),
+                icon: const Icon(Icons.assignment_turned_in_outlined),
+                label: const Text('Request'),
+              ),
+            ),
           ],
         ),
       ],
@@ -433,9 +489,9 @@ class ProductDetailsScreen extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-    color: Colors.grey[300],
-    child: const Center(child: Icon(Icons.image_not_supported)),
-  );
+        color: Colors.grey[300],
+        child: const Center(child: Icon(Icons.image_not_supported)),
+      );
 
   String _formatDate(Timestamp timestamp) {
     final now = DateTime.now();
@@ -540,7 +596,7 @@ class _FavoriteHeart extends StatelessWidget {
       builder: (context, snap) {
         final favs =
             (snap.data?.data()?['favoriteShops'] as List?)?.cast<String>() ??
-            const [];
+                const [];
         final isFav = favs.contains(shopId);
         return IconButton(
           icon: Icon(

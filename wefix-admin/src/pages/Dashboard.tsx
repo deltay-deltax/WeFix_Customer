@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, doc, updateDoc, QuerySnapshot, QueryDocumentSnapshot, FirestoreError } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, QuerySnapshot, QueryDocumentSnapshot, FirestoreError, collectionGroup } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import ShopDetailsModal from '../components/ShopDetailsModal';
 import BannersManager from '../components/BannersManager';
-import { LogOut, Users, Search, Activity, Image as ImageIcon } from 'lucide-react';
+import ServicesManager from '../components/ServicesManager';
+import ComplaintsManager from '../components/ComplaintsManager';
+import UsersManager from '../components/UsersManager';
+import AnalyticsManager from '../components/AnalyticsManager';
+import { LogOut, Users, Search, Activity, Image as ImageIcon, Wrench, AlertCircle, BarChart3, Store } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export interface Shop {
@@ -23,11 +27,14 @@ export interface Shop {
     };
 }
 
+type TabType = 'shops' | 'banners' | 'services' | 'complaints' | 'users' | 'analytics';
+
 const Dashboard = () => {
     const [shops, setShops] = useState<Shop[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
-    const [activeTab, setActiveTab] = useState<'shops' | 'banners'>('shops');
+    const [shopRatings, setShopRatings] = useState<Record<string, { avg: number, count: number }>>({});
+    const [activeTab, setActiveTab] = useState<TabType>('analytics');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -46,6 +53,39 @@ const Dashboard = () => {
             setShops(shopsData);
         }, (error: FirestoreError) => {
             console.error("Error fetching shops:", error);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        // Listen to all ratings via collectionGroup
+        const q = query(collectionGroup(db, 'ratings'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const ratingsMap: Record<string, { total: number, count: number }> = {};
+            
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const rating = data.rating || 0;
+                // Path: shop_users/{shopId}/ratings/{ratingId}
+                const pathParts = doc.ref.path.split('/');
+                const shopId = pathParts[1]; 
+
+                if (!ratingsMap[shopId]) {
+                    ratingsMap[shopId] = { total: 0, count: 0 };
+                }
+                ratingsMap[shopId].total += rating;
+                ratingsMap[shopId].count += 1;
+            });
+
+            const finalStats: Record<string, { avg: number, count: number }> = {};
+            Object.keys(ratingsMap).forEach(sId => {
+                finalStats[sId] = {
+                    avg: ratingsMap[sId].total / ratingsMap[sId].count,
+                    count: ratingsMap[sId].count
+                };
+            });
+            setShopRatings(finalStats);
         });
 
         return () => unsubscribe();
@@ -99,6 +139,26 @@ const Dashboard = () => {
 
                 <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <button
+                        onClick={() => setActiveTab('analytics')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: activeTab === 'analytics' ? '#eff6ff' : 'transparent',
+                            color: activeTab === 'analytics' ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderRadius: 'var(--radius)',
+                            fontWeight: '600',
+                            fontSize: '0.95rem',
+                            border: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <BarChart3 size={20} />
+                        Analytics
+                    </button>
+                    <button
                         onClick={() => setActiveTab('shops')}
                         style={{
                             width: '100%',
@@ -110,10 +170,12 @@ const Dashboard = () => {
                             color: activeTab === 'shops' ? 'var(--primary)' : 'var(--text-secondary)',
                             borderRadius: 'var(--radius)',
                             fontWeight: '600',
-                            fontSize: '0.95rem'
+                            fontSize: '0.95rem',
+                            border: 'none',
+                            cursor: 'pointer'
                         }}
                     >
-                        <Users size={20} />
+                        <Store size={20} />
                         Shop Management
                     </button>
                     <button
@@ -133,6 +195,60 @@ const Dashboard = () => {
                     >
                         <ImageIcon size={20} />
                         Banners
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('services')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: activeTab === 'services' ? '#eff6ff' : 'transparent',
+                            color: activeTab === 'services' ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderRadius: 'var(--radius)',
+                            fontWeight: '600',
+                            fontSize: '0.95rem'
+                        }}
+                    >
+                        <Wrench size={20} />
+                        Services
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('complaints')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: activeTab === 'complaints' ? '#eff6ff' : 'transparent',
+                            color: activeTab === 'complaints' ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderRadius: 'var(--radius)',
+                            fontWeight: '600',
+                            fontSize: '0.95rem'
+                        }}
+                    >
+                        <AlertCircle size={20} />
+                        Complaints
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('users')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: activeTab === 'users' ? '#eff6ff' : 'transparent',
+                            color: activeTab === 'users' ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderRadius: 'var(--radius)',
+                            fontWeight: '600',
+                            fontSize: '0.95rem'
+                        }}
+                    >
+                        <Users size={20} />
+                        Users
                     </button>
                 </nav>
 
@@ -158,7 +274,7 @@ const Dashboard = () => {
 
             {/* Main Content */}
             <main className="main-content">
-                {activeTab === 'shops' ? (
+                {activeTab === 'shops' && (
                     <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
@@ -220,6 +336,7 @@ const Dashboard = () => {
                                 <thead>
                                     <tr>
                                         <th>Shop Info</th>
+                                        <th>Ratings</th>
                                         <th>Location</th>
                                         <th>Category</th>
                                         <th>Status</th>
@@ -241,6 +358,29 @@ const Dashboard = () => {
                                                         <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{shop.phone}</div>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                {shopRatings[shop.id] ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                        <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                            {shopRatings[shop.id].avg.toFixed(1)}
+                                                        </span>
+                                                        <span style={{ color: '#f59e0b', fontSize: '1.1rem' }}>★</span>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                            ({shopRatings[shop.id].count})
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ 
+                                                        fontSize: '0.75rem', 
+                                                        color: 'var(--text-secondary)',
+                                                        background: '#f1f5f9',
+                                                        padding: '0.2rem 0.5rem',
+                                                        borderRadius: '4px'
+                                                    }}>
+                                                        New / No Ratings
+                                                    </span>
+                                                )}
                                             </td>
                                             <td>
                                                 <div style={{ fontSize: '0.875rem' }}>
@@ -284,7 +424,7 @@ const Dashboard = () => {
                                     ))}
                                     {filteredShops.length === 0 && (
                                         <tr>
-                                            <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                                            <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                                                 No shops found matching your criteria.
                                             </td>
                                         </tr>
@@ -293,9 +433,12 @@ const Dashboard = () => {
                             </table>
                         </div>
                     </>
-                ) : (
-                    <BannersManager />
                 )}
+                {activeTab === 'banners' && <BannersManager />}
+                {activeTab === 'services' && <ServicesManager />}
+                {activeTab === 'complaints' && <ComplaintsManager />}
+                {activeTab === 'users' && <UsersManager />}
+                {activeTab === 'analytics' && <AnalyticsManager />}
             </main>
 
             {/* Details Modal */}

@@ -198,11 +198,26 @@ class _ServiceRequestDetailScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            req.deviceType, // Or Brand + Model
+                            req.deviceType,
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.storefront_outlined, size: 16, color: Colors.blue.shade700),
+                              const SizedBox(width: 4),
+                              Text(
+                                req.shopName,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                            ],
                           ),
                           if (req.modelNumber.isNotEmpty)
                             Padding(
@@ -400,6 +415,82 @@ class _ServiceRequestDetailScreenState
                 ),
 
                 const SizedBox(height: 24),
+
+                // Home-visit info card — shown only for heavy appliances (Fridge, AC, Washer, TV)
+                if (req.isHeavyAppliance == true &&
+                    req.status == 'in_progress') ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24.0),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.indigo.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.home_repair_service_outlined,
+                                  color: Colors.indigo.shade700),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Home Visit Service',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.indigo.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (req.visitScheduledAt != null) ...[
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today,
+                                    size: 15, color: Colors.indigo.shade400),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Visit scheduled for:',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.indigo.shade400),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('EEEE, d MMM yyyy  •  h:mm a')
+                                  .format(req.visitScheduledAt!),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.indigo.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'The technician from ${req.shopName} will be at your location at the scheduled time.',
+                              style: TextStyle(
+                                  fontSize: 13, color: Colors.grey.shade600),
+                            ),
+                          ] else ...[
+                            Text(
+                              'Awaiting your visit confirmation. Please go to your Requests tab to schedule a visit time.',
+                              style: TextStyle(
+                                  fontSize: 13.5,
+                                  color: Colors.indigo.shade700),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
 
                 // Technician Report
                 if (req.serviceDetails != null) ...[

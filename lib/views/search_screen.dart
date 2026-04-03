@@ -68,8 +68,8 @@ class _SearchScreenState extends State<SearchScreen> {
   String? _selectedGroup;   // 'Household Electronics' | 'Computer & Peripherals'
   String? _selectedSubcat;  // exact Firestore subcategory value
 
-  final List<String> _filterDistances = ['500m', '1km', '3km', '5km'];
-  String _selectedDistance = '5km';
+  final List<String> _filterDistances = ['1km', '3km', '5km', '7km'];
+  String _selectedDistance = '7km';
 
   Position? _userPosition;
   bool _isLoadingLocation = true;
@@ -128,11 +128,11 @@ class _SearchScreenState extends State<SearchScreen> {
 
   double _getFilterRadiusInKm() {
     switch (_selectedDistance) {
-      case '500m': return 0.5;
       case '1km':  return 1.0;
       case '3km':  return 3.0;
       case '5km':  return 5.0;
-      default:     return 5.0;
+      case '7km':  return 7.0;
+      default:     return 7.0;
     }
   }
 

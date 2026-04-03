@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Empty asset means the builder renders a Flutter icon instead of an image.
   final List<Map<String, String>> _categories = const [
     {'name': 'Laptop',  'asset': 'assets/icon/laptop.png',                          'subcategoryKey': 'Laptop'},
-    {'name': 'Phone',   'asset': 'assets/icon/icons8-mobile-phone-50.png',           'subcategoryKey': 'Phone'},
+    {'name': 'Mobile',  'asset': 'assets/icon/icons8-mobile-phone-50.png',           'subcategoryKey': 'Mobile'},
     {'name': 'Fridge',  'asset': 'assets/icon/icons8-fridge-48.png',                'subcategoryKey': 'Refrigerator (Fridge)'},
     {'name': 'TV',      'asset': 'assets/icon/icons8-tv-48.png',                    'subcategoryKey': 'Smart TV / LED TV'},
     {'name': 'Washer',  'asset': 'assets/icon/icons8-washing-machine-48.png',       'subcategoryKey': 'Washing Machine'},
@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Used by the 'Other' filter to exclude known categories.
   static const Set<String> _kMappedSubcategoryKeys = {
     'Laptop',
-    'Phone',
+    'Mobile',
     'Refrigerator (Fridge)',
     'Smart TV / LED TV',
     'Washing Machine',
@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'Air Conditioner (AC)',
   };
 
-  final List<String> _filterDistances = const ['500m', '1km', '3km', '5km'];
+  final List<String> _filterDistances = const ['1km', '3km', '5km', '7km'];
   static String _selectedDistance = '5km';
   
   // Holds the display name of the selected category icon (used for UI highlight).
@@ -50,20 +50,23 @@ class _HomeScreenState extends State<HomeScreen> {
   static String? _selectedSubcategoryKey;
   static Position? _userPosition;
 
-  // Pagination Variables
+  // Pagination Variables — made static so data persists across nav transitions.
   final ScrollController _scrollController = ScrollController();
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> _shops = [];
-  DocumentSnapshot? _lastDocument;
-  bool _isLoadingInitial = true;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
+  static List<QueryDocumentSnapshot<Map<String, dynamic>>> _shops = [];
+  static DocumentSnapshot? _lastDocument;
+  static bool _isLoadingInitial = true;
+  static bool _isLoadingMore = false;
+  static bool _hasMore = true;
   static const int _perPage = 10;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _initializeData();
+    // Only fetch on first load; if static cache already has data, skip.
+    if (_isLoadingInitial || _shops.isEmpty) {
+      _initializeData();
+    }
   }
 
   Future<void> _initializeData() async {
@@ -84,6 +87,16 @@ class _HomeScreenState extends State<HomeScreen> {
         _hasMore) {
       _fetchShops(loadMore: true);
     }
+  }
+
+  /// Pull-to-refresh: reset static cache and reload everything fresh.
+  Future<void> _refresh() async {
+    _isLoadingInitial = true;
+    _shops = [];
+    _lastDocument = null;
+    _hasMore = true;
+    _isLoadingMore = false;
+    await _initializeData();
   }
 
   Future<void> _fetchShops({bool loadMore = false}) async {
@@ -193,14 +206,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   double _getFilterRadiusInKm() {
     switch (_selectedDistance) {
-      case '500m':
-        return 0.5;
       case '1km':
         return 1.0;
       case '3km':
         return 3.0;
       case '5km':
         return 5.0;
+      case '7km':
+        return 7.0;
       default:
         return 5.0;
     }
@@ -242,7 +255,9 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         body: SafeArea(
-          child: ListView(
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
             controller: _scrollController,
             children: [
               Padding(
@@ -602,6 +617,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
             ],
           ),
+          ),  // RefreshIndicator
         ),
       ),
     );
