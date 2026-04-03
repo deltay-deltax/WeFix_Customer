@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collectionGroup, getDocs, query, orderBy, updateDoc, DocumentReference, type DocumentData } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { User, Smartphone, Building2, CheckCircle2, Clock, ShieldAlert, FastForward } from 'lucide-react';
+import { User, Building2, CheckCircle2, Clock, ShieldAlert, FastForward } from 'lucide-react';
 
 interface Complaint {
     id: string;
