@@ -1,4 +1,4 @@
-﻿/**
+/**
  * WeFix – Warranty Email Notification Cloud Functions
  *
  * Uses firebase functions.config() for credentials (works on Spark plan).
@@ -274,10 +274,15 @@ exports.onRequestStatusChanged = functions.firestore
 
         const statusBefore = dataBefore.status;
         const statusAfter = dataAfter.status;
+        const revBefore = dataBefore.reverseDropScheduled;
+        const revAfter = dataAfter.reverseDropScheduled;
         const userId = dataAfter.userId;
 
-        // We only care if the status changed (or is new)
-        if (statusBefore === statusAfter) return null;
+        // We care if the status changed OR if a reverse drop was just scheduled
+        const statusChanged = statusBefore !== statusAfter;
+        const reverseScheduled = !revBefore && revAfter;
+
+        if (!statusChanged && !reverseScheduled) return null;
         if (!userId) {
             functions.logger.warn(`No userId found for request ${requestId}`);
             return null;
@@ -304,17 +309,21 @@ exports.onRequestStatusChanged = functions.firestore
             .doc(shopId)
             .get();
         const shopName = shopDoc.exists
-            ? shopDoc.data().companyLegalName ||
-            shopDoc.data().companyLegalname ||
-            shopDoc.data().companylegalName ||
-            "the shop"
+            ? (shopDoc.data().companyLegalName ||
+               shopDoc.data().companyLegalname ||
+               shopDoc.data().companylegalName ||
+               "the shop")
             : "the shop";
 
         // Map status to Title and Body
         let title = "WeFix Update";
         let body = "";
 
-        switch (statusAfter) {
+        if (reverseScheduled) {
+            title = "Courier Scheduled 🚚";
+            body = `Your device is on its way back! A courier has been scheduled by ${shopName} to return your item.`;
+        } else {
+            switch (statusAfter) {
             case "pending":
             case "Pending":
                 title = "Request Sent";
@@ -322,11 +331,22 @@ exports.onRequestStatusChanged = functions.firestore
                 break;
             case "waiting_for_confirmation":
                 title = "Estimate Received";
-                body = `The ${shopName} has estimated a budget of ₹${dataAfter.amount || "0"} for your service. Please accept or decline to move further.`;
+                if (dataAfter.isHeavyAppliance) {
+                    body = `${shopName} has estimated a visit charge of ₹${dataAfter.amount || "0"}. Please accept and schedule your visit time.`;
+                } else {
+                    body = `The ${shopName} has estimated a budget of ₹${dataAfter.amount || "0"} for your service. Please accept or decline to move further.`;
+                }
                 break;
             case "in_progress":
-                title = "Request Accepted";
-                body = `Please drop off or courier the product to the shop location.`;
+                title = dataAfter.isHeavyAppliance ? "Home Visit Scheduled" : "Request Accepted";
+                if (dataAfter.isHeavyAppliance) {
+                    const scheduledDate = dataAfter.visitScheduledAt 
+                        ? (dataAfter.visitScheduledAt.toDate ? dataAfter.visitScheduledAt.toDate().toLocaleString() : dataAfter.visitScheduledAt)
+                        : "the chosen time";
+                    body = `Your home-visit is set! A technician from ${shopName} will arrive at your location at ${scheduledDate}.`;
+                } else {
+                    body = `Your request was accepted by ${shopName}. Please drop off or courier the product to the shop location.`;
+                }
                 break;
             case "in_service":
                 title = "Product Received";
@@ -344,9 +364,9 @@ exports.onRequestStatusChanged = functions.firestore
                 title = "Request Declined";
                 body = `Unfortunately, the shop declined your service request.`;
                 break;
-            default:
                 // No notification for other generic statuses
                 return null;
+            }
         }
 
         // Send Push Notification
@@ -384,9 +404,13 @@ exports.onRequestStatusChanged = functions.firestore
 
             // Save to User's Notifications Subcollection
             let type = "info";
-            if (statusAfter === "payment_required" || statusAfter === "waiting_for_confirmation") type = "warning";
-            if (statusAfter === "payment_done" || statusAfter === "completed") type = "success";
-            if (statusAfter === "declined") type = "error";
+            if (reverseScheduled) {
+                type = "success";
+            } else {
+                if (statusAfter === "payment_required" || statusAfter === "waiting_for_confirmation") type = "warning";
+                if (statusAfter === "payment_done" || statusAfter === "completed") type = "success";
+                if (statusAfter === "declined") type = "error";
+            }
 
             await admin.firestore()
                 .collection("users")
@@ -517,6 +541,14 @@ exports.createBorzoOrder = functions.https.onCall(async (data, context) => {
                 updatePayload.borzoDeliveryCost = order.payment_amount ? order.payment_amount.toString() : null;
             }
             await db.collection("shop_users").doc(shopId).collection("requests").doc(requestId).update(updatePayload);
+
+            // Create a lookup entry for rapid, index-free webhook status updates
+            await db.collection("borzo_order_lookups").doc(order.order_id.toString()).set({
+                shopId: shopId,
+                requestId: requestId,
+                isReverse: isReverseDrop || false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
         }
 
         return order;
@@ -532,45 +564,48 @@ exports.borzoWebhook = functions.https.onRequest(async (req, res) => {
     }
 
     const data = req.body;
-    if (!data || !data.order || !data.order.order_id) {
-        return res.status(400).send("Invalid Payload");
+    functions.logger.log("Incoming Borzo Webhook Payload:", JSON.stringify(data));
+
+    if (!data) return res.status(400).send("Empty Payload");
+
+    // Borzo has two formats: Order Callback (data.order) and Delivery Callback (data.delivery)
+    const order = data.order || data.delivery;
+    if (!order || !order.order_id) {
+        functions.logger.warn("Borzo Webhook: Missing order_id in payload.");
+        return res.status(200).send("OK - No action taken (Missing order_id)");
     }
 
-    const orderId = data.order.order_id;
-    const newStatus = data.order.status;
+    const orderId = order.order_id;
+    const newStatus = order.status;
 
     try {
-        // 1. Try to match as a Forward Trip
-        let requestsSnap = await db.collectionGroup("requests").where("borzoOrderId", "==", orderId).get();
-        if (!requestsSnap.empty) {
-            const batch = db.batch();
-            requestsSnap.forEach((doc) => {
-                batch.update(doc.ref, {
-                    borzoStatus: newStatus,
-                    borzoStatusDescription: data.order.status_description || "Updated"
-                });
-            });
-            await batch.commit();
-            functions.logger.log(`Updated forward status for Borzo Order ID: ${orderId} to ${newStatus}`);
-            return res.status(200).send("OK");
+        const orderIdStr = orderId.toString();
+
+        // Use a direct lookup instead of a collectionGroup query (No index needed!)
+        const lookupSnap = await db.collection("borzo_order_lookups").doc(orderIdStr).get();
+
+        if (!lookupSnap.exists) {
+            functions.logger.warn(`Borzo Webhook: No mapping found for Order ID ${orderIdStr}`);
+            return res.status(200).send("OK - No mapping found");
         }
 
-        // 2. Try to match as a Reverse Trip
-        let reverseRequestsSnap = await db.collectionGroup("requests").where("reverseBorzoOrderId", "==", orderId).get();
-        if (!reverseRequestsSnap.empty) {
-            const batch = db.batch();
-            reverseRequestsSnap.forEach((doc) => {
-                batch.update(doc.ref, {
-                    reverseBorzoStatus: newStatus,
-                    reverseBorzoStatusDescription: data.order.status_description || "Updated"
-                });
+        const { shopId, requestId, isReverse } = lookupSnap.data();
+        const requestRef = db.collection("shop_users").doc(shopId).collection("requests").doc(requestId);
+
+        if (isReverse) {
+            await requestRef.update({
+                reverseBorzoStatus: newStatus,
+                reverseBorzoStatusDescription: order.status_description || "Updated via Webhook"
             });
-            await batch.commit();
-            functions.logger.log(`Updated REVERSE status for Borzo Order ID: ${orderId} to ${newStatus}`);
-            return res.status(200).send("OK");
+            functions.logger.log(`Updated REVERSE status for Request ${requestId} to ${newStatus}`);
+        } else {
+            await requestRef.update({
+                borzoStatus: newStatus,
+                borzoStatusDescription: order.status_description || "Updated via Webhook"
+            });
+            functions.logger.log(`Updated FORWARD status for Request ${requestId} to ${newStatus}`);
         }
 
-        functions.logger.log(`No matching request found for Borzo Order ID: ${orderId}`);
         return res.status(200).send("OK");
     } catch (error) {
         functions.logger.error("Webhook processing error:", error);
