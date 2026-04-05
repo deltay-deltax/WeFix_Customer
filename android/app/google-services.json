@@ -44,6 +44,80 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:670452211833:android:05c884372175d0d455f4a8",
+        "android_client_info": {
+          "package_name": "com.wefix.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "670452211833-bs1m5fa6aporhlqkq0d3jgu84ra2nnm9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wefix.customer",
+            "certificate_hash": "79b3f048bc2ad9be835a3d251bd29c949252cbba"
+          }
+        },
+        {
+          "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC36qBqY62HKWycpgWod5HNe4uOX3x5ZZ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:670452211833:android:4c9d0aad273b27ea55f4a8",
+        "android_client_info": {
+          "package_name": "com.wefix.shop"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "670452211833-6ofvj54q6i6fargdm05thdeg9dd5q2fk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wefix.shop",
+            "certificate_hash": "5ae6b2f8fe337e60cc2404b4cd625c04ae4cc6cd"
+          }
+        },
+        {
+          "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC36qBqY62HKWycpgWod5HNe4uOX3x5ZZ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "670452211833-o0ci9ecvf53r94lbfl61f6np5g097kum.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:670452211833:android:6fad9cfb01887c3e55f4a8",
         "android_client_info": {
           "package_name": "com.wefix_shop"
