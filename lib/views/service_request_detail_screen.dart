@@ -393,10 +393,10 @@ class _ServiceRequestDetailScreenState
                 ),
 
 
-                // Problem Description
-                const Text(
-                  'Problem Description',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                // Problem & Description
+                Text(
+                  req.problem.isNotEmpty ? req.problem : 'Problem Details',
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -404,13 +404,18 @@ class _ServiceRequestDetailScreenState
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Text(
-                    req.problem.isNotEmpty
-                        ? req.problem
-                        : 'No description provided',
-                    style: const TextStyle(fontSize: 15),
+                    req.description.isNotEmpty
+                        ? req.description
+                        : 'No additional details provided',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.black87,
+                      height: 1.5,
+                    ),
                   ),
                 ),
 
