@@ -290,7 +290,7 @@ class _ServiceRequestDetailScreenState
 
                     if (req.borzoTrackingUrl != null && req.borzoTrackingUrl!.isNotEmpty) {
                       final bStatus = req.borzoStatus?.toLowerCase() ?? '';
-                      if (bStatus != 'completed' && bStatus != 'delivered') {
+                      if (bStatus != 'finished') {
                         showForwardTracking = true;
                       }
                     }

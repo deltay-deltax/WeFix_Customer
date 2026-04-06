@@ -51,8 +51,8 @@ const ServicesManager: React.FC = () => {
                 if (!stats[sId]) stats[sId] = { count: 0, earnings: 0 };
                 stats[sId].count++;
 
-                // Only sum earnings for completed/paid statuses
-                const completedStatuses = ['payment_done', 'completed', 'paid'];
+                // Only sum earnings for completed/paid/delivered statuses
+                const completedStatuses = ['payment_done', 'completed', 'paid', 'delivered'];
                 if (completedStatuses.includes(data.status)) {
                     const amount = data.serviceDetails?.totalCost || Number(data.amount) || 0;
                     stats[sId].earnings += amount;
@@ -101,15 +101,18 @@ const ServicesManager: React.FC = () => {
         let totalService = 0;
         let totalBorzo = 0;
         let totalCommission = 0;
+        const completedStatuses = ['payment_done', 'completed', 'paid', 'delivered'];
 
         requests.forEach(req => {
-            const serviceCost = req.serviceDetails?.totalCost || Number(req.amount) || 0;
-            const borzoCost = Number(req.borzoDeliveryCost) || 0;
-            const commission = serviceCost * 0.20;
+            if (completedStatuses.includes(req.status)) {
+                const serviceCost = req.serviceDetails?.totalCost || Number(req.amount) || 0;
+                const borzoCost = Number(req.borzoDeliveryCost) || 0;
+                const commission = serviceCost * 0.20;
 
-            totalService += serviceCost;
-            totalBorzo += borzoCost;
-            totalCommission += commission;
+                totalService += serviceCost;
+                totalBorzo += borzoCost;
+                totalCommission += commission;
+            }
         });
 
         const totalSettlement = totalService - totalCommission;
@@ -193,7 +196,7 @@ const ServicesManager: React.FC = () => {
                                                 fontSize: '0.75rem',
                                                 textTransform: 'uppercase',
                                                 fontWeight: '700',
-                                                color: req.status === 'completed' || req.status === 'payment_done' ? 'var(--secondary)' : 'var(--warning)'
+                                                color: ['completed', 'payment_done', 'paid', 'delivered'].includes(req.status) ? 'var(--secondary)' : 'var(--warning)'
                                             }}>
                                                 {req.status?.replace('_', ' ')}
                                             </span>

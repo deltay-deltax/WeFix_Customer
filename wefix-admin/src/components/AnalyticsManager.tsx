@@ -46,7 +46,7 @@ const AnalyticsManager: React.FC = () => {
                 statuses[s] = (statuses[s] || 0) + 1;
 
                 // Revenue calculation (only for completed/paid statuses)
-                const completedStatuses = ['payment_done', 'completed', 'paid'];
+                const completedStatuses = ['payment_done', 'completed', 'paid', 'delivered'];
                 if (completedStatuses.includes(s)) {
                     const cost = data.serviceDetails?.totalCost || Number(data.amount) || 0;
                     const bCost = Number(data.borzoDeliveryCost) || 0;

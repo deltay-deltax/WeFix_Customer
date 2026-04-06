@@ -35,7 +35,7 @@ const ShopDetailsModal: React.FC<ShopDetailsModalProps> = ({ shop, onClose, onTo
                 const reqQuery = query(
                     collectionGroup(db, 'requests'),
                     where('shopId', '==', shop.id),
-                    where('status', 'in', ['payment_done', 'completed', 'paid'])
+                    where('status', 'in', ['payment_done', 'completed', 'paid', 'delivered'])
                 );
                 const reqSnap = await getDocs(reqQuery);
                 reqSnap.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
