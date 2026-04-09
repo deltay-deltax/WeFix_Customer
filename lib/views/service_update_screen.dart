@@ -357,20 +357,7 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                 ],
               ),
 
-              // Image Section if exists
-              if (req.images.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    req.images.first,
-                    height: 150,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-              ],
+              // Image Section if exists (removed as per request)
 
               const SizedBox(height: 12),
 

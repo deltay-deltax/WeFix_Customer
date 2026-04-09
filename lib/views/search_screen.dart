@@ -448,7 +448,7 @@ class _SearchScreenState extends State<SearchScreen> {
   /// Firestore stream: if a subcategory filter is active, restrict to that.
   Stream<QuerySnapshot<Map<String, dynamic>>> _buildStream() {
     Query<Map<String, dynamic>> q = FirebaseFirestore.instance
-        .collection('registered_shop_users');
+        .collection('registered_shop_users').where('active', isEqualTo: true);
 
     if (_selectedSubcat != null) {
       q = q.where('subcategories', arrayContains: _selectedSubcat);

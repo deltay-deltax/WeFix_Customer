@@ -29,7 +29,7 @@ class ComplaintRepository {
   /// Fetches all completed service requests for a given user across all shops.
   /// Completed statuses: payment_done, completed, paid.
   Future<List<Map<String, dynamic>>> getCompletedRequests(String userId) async {
-    final completedStatuses = ['payment_done', 'completed', 'paid'];
+    final completedStatuses = ['payment_done', 'completed', 'paid', 'delivered'];
     final List<Map<String, dynamic>> results = [];
 
     for (final status in completedStatuses) {

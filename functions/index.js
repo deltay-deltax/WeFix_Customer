@@ -360,6 +360,10 @@ exports.onRequestStatusChanged = functions.firestore
                 title = "Service Completed";
                 body = `Payment done! Your service is completely finished. Please rate the service in the app.`;
                 break;
+            case "delivered":
+                title = "Device Delivered";
+                body = `Your repaired device has been delivered. Thank you for choosing ${shopName}!`;
+                break;
             case "declined":
                 title = "Request Declined";
                 body = `Unfortunately, the shop declined your service request.`;
@@ -593,10 +597,17 @@ exports.borzoWebhook = functions.https.onRequest(async (req, res) => {
         const requestRef = db.collection("shop_users").doc(shopId).collection("requests").doc(requestId);
 
         if (isReverse) {
-            await requestRef.update({
+            const updatePayload = {
                 reverseBorzoStatus: newStatus,
                 reverseBorzoStatusDescription: order.status_description || "Updated via Webhook"
-            });
+            };
+
+            // If the reverse delivery is finished, mark the whole request as delivered
+            if (newStatus === "finished") {
+                updatePayload.status = "delivered";
+            }
+
+            await requestRef.update(updatePayload);
             functions.logger.log(`Updated REVERSE status for Request ${requestId} to ${newStatus}`);
         } else {
             await requestRef.update({
@@ -612,3 +623,90 @@ exports.borzoWebhook = functions.https.onRequest(async (req, res) => {
         return res.status(500).send("Internal Server Error");
     }
 });
+
+// ── 5. Firestore Trigger: Chat Messages → Push Notifications ───────────────
+exports.onChatMessageSent = functions.firestore
+    .document("chats/{chatId}/messages/{messageId}")
+    .onCreate(async (snap, context) => {
+        const { chatId } = context.params;
+        const msgData = snap.data();
+        const senderId = msgData.senderId;
+
+        if (!senderId) return null;
+
+        const text = msgData.text || (msgData.imageUrl ? "📷 Image received" : "New message");
+
+        // Fetch chat doc for participants
+        const chatSnap = await admin.firestore().collection("chats").doc(chatId).get();
+        if (!chatSnap.exists) return null;
+
+        const chatData = chatSnap.data();
+        const participants = chatData.participants || [];
+        const receiverId = participants.find((id) => id !== senderId);
+
+        if (!receiverId) return null;
+
+        // Find receiver FCM Token
+        let fcmToken = null;
+        const userDoc = await admin.firestore().collection("users").doc(receiverId).get();
+        if (userDoc.exists) {
+            fcmToken = userDoc.data().fcmToken;
+        } else {
+            const shopDoc = await admin.firestore().collection("shop_users").doc(receiverId).get();
+            if (shopDoc.exists) {
+                fcmToken = shopDoc.data().fcmToken;
+            }
+        }
+
+        if (!fcmToken) {
+            functions.logger.log(`No FCM token for receiver ${receiverId}`);
+            return null;
+        }
+
+        // Find sender Name
+        let senderName = "New Message";
+        const senderUserDoc = await admin.firestore().collection("users").doc(senderId).get();
+        if (senderUserDoc.exists) {
+            senderName = senderUserDoc.data().name || senderUserDoc.data().displayName || "Customer";
+        } else {
+            const senderShopDoc = await admin.firestore().collection("shop_users").doc(senderId).get();
+            if (senderShopDoc.exists) {
+                const sData = senderShopDoc.data();
+                senderName = sData.companyLegalName || sData.companyLegalname || sData.companylegalName || "Shop";
+            }
+        }
+
+        // Send Push Notification
+        const payload = {
+            token: fcmToken,
+            notification: {
+                title: senderName,
+                body: text,
+            },
+            android: {
+                priority: "high",
+                notification: {
+                    sound: "default",
+                    clickAction: "FLUTTER_NOTIFICATION_CLICK",
+                },
+            },
+            apns: {
+                payload: {
+                    aps: { sound: "default" },
+                },
+            },
+            data: {
+                chatId: chatId,
+                type: "chat",
+            },
+        };
+
+        try {
+            await admin.messaging().send(payload);
+            functions.logger.log(`Chat push sent to ${receiverId} from ${senderId}`);
+        } catch (error) {
+            functions.logger.error(`Error sending chat push: ${error.message}`);
+        }
+
+        return null;
+    });

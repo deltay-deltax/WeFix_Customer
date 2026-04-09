@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection('registered_shop_users');
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection('registered_shop_users').where('active', isEqualTo: true);
 
       // For 'Other', fetch all shops (client-side filtering excludes known keys).
       // For a specific subcategory, filter in Firestore directly.

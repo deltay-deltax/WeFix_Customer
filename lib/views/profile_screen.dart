@@ -475,6 +475,7 @@ class _FavoriteShopsGrid extends StatelessWidget {
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: FirebaseFirestore.instance
               .collection('registered_shop_users')
+              .where('active', isEqualTo: true)
               .where(FieldPath.documentId, whereIn: ids)
               .snapshots(),
           builder: (context, shopSnap) {

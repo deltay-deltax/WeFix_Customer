@@ -290,21 +290,23 @@ class _ServiceRequestDetailScreenState
 
                     if (req.borzoTrackingUrl != null && req.borzoTrackingUrl!.isNotEmpty) {
                       final bStatus = req.borzoStatus?.toLowerCase() ?? '';
-                      if (bStatus != 'finished') {
+                      final requestStatus = req.status.toLowerCase();
+                      
+                      if (bStatus != 'finished' && bStatus != 'delivered' && requestStatus != 'delivered' && requestStatus != 'completed') {
                         showForwardTracking = true;
                       }
                     }
 
                     if (req.status == 'payment_done' && req.reverseBorzoTrackingUrl != null && req.reverseBorzoTrackingUrl!.isNotEmpty) {
                       final rbStatus = req.reverseBorzoStatus?.toLowerCase() ?? '';
-                      if (rbStatus != 'completed' && rbStatus != 'delivered') {
+                      if (rbStatus != 'completed' && rbStatus != 'delivered' && rbStatus != 'finished') {
                         showReverseTracking = true;
                       }
                       showForwardTracking = false; 
                     }
 
                     final rbStatCheck = req.reverseBorzoStatus?.toLowerCase() ?? '';
-                    if ((rbStatCheck == 'completed' || rbStatCheck == 'delivered') && req.status != 'delivered') {
+                    if ((rbStatCheck == 'completed' || rbStatCheck == 'delivered' || rbStatCheck == 'finished') && req.status != 'delivered') {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         FirebaseFirestore.instance
                             .collection('shop_users')
