@@ -7,6 +7,7 @@ interface AggregateStats {
     totalSales: number;
     totalBorzo: number;
     totalCommission: number;
+    totalDiscounts: number;
     jobCount: number;
     statusCounts: Record<string, number>;
 }
@@ -16,6 +17,7 @@ const AnalyticsManager: React.FC = () => {
         totalSales: 0,
         totalBorzo: 0,
         totalCommission: 0,
+        totalDiscounts: 0,
         jobCount: 0,
         statusCounts: {}
     });
@@ -34,6 +36,7 @@ const AnalyticsManager: React.FC = () => {
             let sales = 0;
             let borzo = 0;
             let comm = 0;
+            let discounts = 0;
             let count = 0;
             const statuses: Record<string, number> = {};
 
@@ -50,10 +53,12 @@ const AnalyticsManager: React.FC = () => {
                 if (completedStatuses.includes(s)) {
                     const cost = data.serviceDetails?.totalCost || Number(data.amount) || 0;
                     const bCost = Number(data.borzoDeliveryCost) || 0;
+                    const discount = data.discountAmount || 0;
                     
                     sales += cost;
                     borzo += bCost;
                     comm += (cost * 0.20);
+                    discounts += discount;
                 }
             });
 
@@ -61,6 +66,7 @@ const AnalyticsManager: React.FC = () => {
                 totalSales: sales,
                 totalBorzo: borzo,
                 totalCommission: comm,
+                totalDiscounts: discounts,
                 jobCount: count,
                 statusCounts: statuses
             });
@@ -154,6 +160,27 @@ const AnalyticsManager: React.FC = () => {
                             icon={Truck} 
                             color="#059669"
                             subtitle="Aggregated Borzo delivery expenses"
+                        />
+                        <MetricCard 
+                            title="Total Discounts Given" 
+                            value={stats.totalDiscounts} 
+                            icon={Activity} 
+                            color="#ef4444"
+                            subtitle="Value of all coupons used by customers"
+                        />
+                        <MetricCard 
+                            title="Total Amount After Discount" 
+                            value={stats.totalSales - stats.totalDiscounts} 
+                            icon={ShoppingBag} 
+                            color="#10b981"
+                            subtitle="Net amount paid by customers"
+                        />
+                        <MetricCard 
+                            title="Net Platform Earning" 
+                            value={stats.totalCommission - stats.totalDiscounts} 
+                            icon={TrendingUp} 
+                            color="#f59e0b"
+                            subtitle="20% Commission minus discounts"
                         />
                     </div>
 

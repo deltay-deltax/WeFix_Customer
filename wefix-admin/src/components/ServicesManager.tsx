@@ -14,6 +14,7 @@ interface ServiceRequest {
         laborCost: number;
         partsCost: number;
     };
+    discountAmount?: number;
     borzoDeliveryCost?: string;
     createdAt: any;
     status: string;
@@ -163,6 +164,7 @@ const ServicesManager: React.FC = () => {
                                 <th>Customer</th>
                                 <th>Service Cost</th>
                                 <th>Borzo Cost</th>
+                                <th>Discount</th>
                                 <th>Commission (20%)</th>
                                 <th style={{ color: 'var(--primary)' }}>Settlement</th>
                                 <th>Status</th>
@@ -172,6 +174,7 @@ const ServicesManager: React.FC = () => {
                             {requests.map((req) => {
                                 const serviceCost = req.serviceDetails?.totalCost || Number(req.amount) || 0;
                                 const borzoCost = Number(req.borzoDeliveryCost) || 0;
+                                const discount = req.discountAmount || 0;
                                 const commission = serviceCost * 0.20;
                                 const settlement = serviceCost - commission;
 
@@ -189,6 +192,7 @@ const ServicesManager: React.FC = () => {
                                         </td>
                                         <td>₹{serviceCost.toLocaleString()}</td>
                                         <td>₹{borzoCost.toLocaleString()}</td>
+                                        <td style={{ color: 'var(--success)', fontWeight: '600' }}>{discount > 0 ? `-₹${discount.toLocaleString()}` : '-'}</td>
                                         <td style={{ color: 'var(--danger)', fontWeight: '600' }}>-₹{commission.toLocaleString()}</td>
                                         <td style={{ fontWeight: '800', color: 'var(--primary)' }}>₹{settlement.toLocaleString()}</td>
                                         <td>

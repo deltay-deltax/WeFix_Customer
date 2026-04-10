@@ -83,6 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   hint: 'Password',
                   controller: passCtrl,
                   obscureText: true,
+                  isPasswordField: true,
                   fillColor: AppColors.inputFill,
                   borderColor: AppColors.primary,
                 ),
@@ -161,7 +162,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 final pass = passCtrl.text.trim();
                 if (email.isEmpty || pass.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Enter email and password')),
+                    const SnackBar(
+                      content: Text('Please enter your email and password'),
+                      backgroundColor: Colors.redAccent,
+                    ),
                   );
                   return;
                 }
@@ -181,14 +185,44 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   if (!mounted) return;
                   Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-                } on FirebaseAuthException catch (e) {
-                  final msg = e.message ?? 'Sign in failed';
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(msg)));
-                } catch (_) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sign in failed')),
+                    const SnackBar(
+                      content: Text('Welcome back!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } on FirebaseAuthException catch (e) {
+                  String msg = 'Authentication failed. Please check your credentials.';
+                  if (e.code == 'user-not-found') {
+                    msg = 'No account found with this email.';
+                  } else if (e.code == 'wrong-password') {
+                    msg = 'Incorrect password. Please try again.';
+                  } else if (e.code == 'invalid-email') {
+                    msg = 'The email address is not valid.';
+                  } else if (e.code == 'user-disabled') {
+                    msg = 'This account has been disabled.';
+                  } else if (e.code == 'invalid-credential') {
+                    msg = 'Invalid email or password. Please check and try again.';
+                  } else if (e.code == 'network-request-failed') {
+                    msg = 'Network error. Please check your internet connection.';
+                  } else if (e.code == 'too-many-requests') {
+                    msg = 'Too many failed attempts. Please try again later.';
+                  }
+                  
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('An unexpected error occurred. Please try again.'),
+                      backgroundColor: Colors.redAccent,
+                    ),
                   );
                 } finally {
                   if (mounted) {
@@ -196,6 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   }
                 }
               },
+
         child: _emailLoading
             ? const SizedBox(
                 height: 22,

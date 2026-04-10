@@ -41,17 +41,38 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
     try {
       if (req.reference != null) {
         await req.reference!.update({'status': newStatus});
+        String professionalMsg = 'Status has been successfully updated.';
+        if (newStatus == 'payment_done') {
+          professionalMsg = 'Payment confirmed. Service is now complete.';
+        } else if (newStatus == 'declined') {
+          professionalMsg = 'The service request has been declined.';
+        } else if (newStatus == 'in_progress') {
+          professionalMsg = 'Service is now in progress.';
+        }
+
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Status updated to $newStatus')),
+          SnackBar(
+            content: Text(professionalMsg),
+            backgroundColor: Colors.blueAccent,
+          ),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: Document Reference missing')),
+          const SnackBar(
+            content: Text('Unable to update status: reference missing.'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -60,7 +81,10 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
     if (_currentPayingRequest != null) {
       _updateStatus(_currentPayingRequest!, 'payment_done');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment Successful: ${response.paymentId}')),
+        SnackBar(
+          content: Text('Payment Successful! Reference: ${response.paymentId}'),
+          backgroundColor: Colors.green,
+        ),
       );
     }
     _currentPayingRequest = null;
@@ -68,14 +92,20 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
 
   void _handlePaymentError(PaymentFailureResponse response) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment Failed: ${response.message}')),
+      SnackBar(
+        content: Text('Payment Failed: ${response.message}'),
+        backgroundColor: Colors.redAccent,
+      ),
     );
     _currentPayingRequest = null;
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('External Wallet: ${response.walletName}')),
+      SnackBar(
+        content: Text('Payment via ${response.walletName} initiated.'),
+        backgroundColor: Colors.orangeAccent,
+      ),
     );
   }
 
@@ -85,11 +115,16 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
             0)
         .toDouble();
     double deliveryCost = double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0;
-    double amount = baseAmount + deliveryCost;
+    double discount = (req.discountAmount ?? 0).toDouble();
+    
+    double amount = baseAmount + deliveryCost - discount;
 
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid amount for payment')),
+        const SnackBar(
+          content: Text('Invalid payment amount. Please contact support.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
@@ -385,7 +420,8 @@ class _ServiceUpdateScreenState extends State<ServiceUpdateScreen> {
                       .toDouble();
                   double deliveryAmnt =
                       double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0;
-                  double totalAmnt = baseAmnt + deliveryAmnt;
+                  double discountAmnt = (req.discountAmount ?? 0).toDouble();
+                  double totalAmnt = baseAmnt + deliveryAmnt - discountAmnt;
                   return _infoText(
                       'Amount: ', '₹${totalAmnt.toStringAsFixed(0)}');
                 },
@@ -1158,7 +1194,10 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
     if (_selectedOption == 1) {
       if (_selectedDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a pickup Date & Time')),
+          const SnackBar(
+            content: Text('Please select a pickup Date & Time'),
+            backgroundColor: Colors.orangeAccent,
+          ),
         );
         return;
       }
@@ -1231,7 +1270,10 @@ class _AcceptRequestBottomSheetState extends State<_AcceptRequestBottomSheet> {
         if (mounted) Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to book Borzo Courier: $e')),
+          SnackBar(
+            content: Text('Courier booking failed: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       } finally {
         if (mounted) setState(() => _isSubmitting = false);

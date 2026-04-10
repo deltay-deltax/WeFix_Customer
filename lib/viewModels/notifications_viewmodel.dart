@@ -39,21 +39,23 @@ class NotificationsViewModel extends ChangeNotifier {
       _notifications = snap.docs
           .where((doc) => !_pendingDeletes.contains(doc.id))
           .map((doc) {
-        final data = doc.data();
-        final ts = data['createdAt'] as Timestamp?;
-        final dateStr = ts != null
-            ? DateFormat('MM/dd/yyyy h:mma').format(ts.toDate())
-            : 'Just now';
+            final data = doc.data();
+            final ts = data['createdAt'] as Timestamp?;
+            final dateStr = ts != null
+                ? DateFormat('MM/dd/yyyy h:mma').format(ts.toDate())
+                : 'Just now';
 
-        return NotificationModel(
-          id: doc.id,
-          title: data['title'] ?? 'Notification',
-          description: data['body'] ?? '',
-          dateTime: dateStr,
-          type: data['type'] ?? 'info',
-          isRead: data['isRead'] == true,
-        );
-      }).toList();
+            return NotificationModel(
+              id: doc.id,
+              title: data['title'] ?? 'Notification',
+              description: data['body'] ?? '',
+              dateTime: dateStr,
+              type: data['type'] ?? 'info',
+              isRead: data['isRead'] == true,
+            );
+          })
+          .where((notif) => !(notif.title == 'WeFix Update' && notif.description.isEmpty))
+          .toList();
 
       _isLoading = false;
       notifyListeners();

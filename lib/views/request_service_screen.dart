@@ -526,9 +526,12 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Request submitted')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Service request submitted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
       Navigator.pushNamedAndRemoveUntil(
         context,
         AppRoutes.requests,
@@ -536,9 +539,12 @@ class _RequestServiceScreenState extends State<RequestServiceScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit request: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     } finally {
       if (mounted) setState(() => loading = false);
     }

@@ -76,14 +76,24 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
           } else {
             if (mounted) {
               setState(() => _isSearching = false);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Google Maps Error: ${data["status"]} - ${data["error_message"] ?? "Unknown"}')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Location error: ${data["status"]}'),
+                  backgroundColor: Colors.redAccent,
+                ),
+              );
             }
           }
         }
       } catch (e) {
         if (mounted) {
            setState(() => _isSearching = false);
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Network Error: \$e')));
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('Network error: $e'),
+               backgroundColor: Colors.redAccent,
+             ),
+           );
         }
       }
     });

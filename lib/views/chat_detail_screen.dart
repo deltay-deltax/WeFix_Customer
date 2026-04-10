@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wefix/core/constants/app_colors.dart';
+import '../widgets/full_screen_image_viewer.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final Map<String, dynamic> args;
@@ -46,7 +48,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           children: [
             CircleAvatar(
               backgroundImage: (image != null && image!.isNotEmpty)
-                  ? NetworkImage(image!)
+                  ? CachedNetworkImageProvider(image!)
                   : null,
               child: (image == null || image!.isEmpty)
                   ? const Icon(Icons.store)
@@ -99,11 +101,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (imageUrl != null && imageUrl.isNotEmpty)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
+                              GestureDetector(
+                                onTap: () => FullScreenImageViewer.open(context, [imageUrl]),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                    errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+                                  ),
                                 ),
                               ),
                             if (text.isNotEmpty) Text(text),

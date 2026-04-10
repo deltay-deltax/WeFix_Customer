@@ -316,7 +316,7 @@ exports.onRequestStatusChanged = functions.firestore
             : "the shop";
 
         // Map status to Title and Body
-        let title = "WeFix Update";
+        let title = "";
         let body = "";
 
         if (reverseScheduled) {
@@ -368,9 +368,15 @@ exports.onRequestStatusChanged = functions.firestore
                 title = "Request Declined";
                 body = `Unfortunately, the shop declined your service request.`;
                 break;
+            default:
                 // No notification for other generic statuses
                 return null;
             }
+        }
+
+        if (!title || !body) {
+            functions.logger.log(`No notification content for status ${statusAfter} - skipping.`);
+            return null;
         }
 
         // Send Push Notification

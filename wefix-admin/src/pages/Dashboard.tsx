@@ -7,7 +7,8 @@ import ServicesManager from '../components/ServicesManager';
 import ComplaintsManager from '../components/ComplaintsManager';
 import UsersManager from '../components/UsersManager';
 import AnalyticsManager from '../components/AnalyticsManager';
-import { LogOut, Users, Search, Activity, Image as ImageIcon, Wrench, AlertCircle, BarChart3, Store } from 'lucide-react';
+import OffersManager from '../components/OffersManager';
+import { LogOut, Users, Search, Activity, Image as ImageIcon, Wrench, AlertCircle, BarChart3, Store, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export interface Shop {
@@ -27,7 +28,7 @@ export interface Shop {
     };
 }
 
-type TabType = 'shops' | 'banners' | 'services' | 'complaints' | 'users' | 'analytics';
+type TabType = 'shops' | 'banners' | 'services' | 'complaints' | 'users' | 'analytics' | 'offers';
 
 const Dashboard = () => {
     const [shops, setShops] = useState<Shop[]>([]);
@@ -244,11 +245,33 @@ const Dashboard = () => {
                             color: activeTab === 'users' ? 'var(--primary)' : 'var(--text-secondary)',
                             borderRadius: 'var(--radius)',
                             fontWeight: '600',
-                            fontSize: '0.95rem'
+                            fontSize: '0.95rem',
+                            border: 'none',
+                            cursor: 'pointer'
                         }}
                     >
                         <Users size={20} />
                         Users
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('offers')}
+                        style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 1rem',
+                            background: activeTab === 'offers' ? '#eff6ff' : 'transparent',
+                            color: activeTab === 'offers' ? 'var(--primary)' : 'var(--text-secondary)',
+                            borderRadius: 'var(--radius)',
+                            fontWeight: '600',
+                            fontSize: '0.95rem',
+                            border: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <Ticket size={20} />
+                        Offers & Coupons
                     </button>
                 </nav>
 
@@ -439,6 +462,7 @@ const Dashboard = () => {
                 {activeTab === 'complaints' && <ComplaintsManager />}
                 {activeTab === 'users' && <UsersManager />}
                 {activeTab === 'analytics' && <AnalyticsManager />}
+                {activeTab === 'offers' && <OffersManager />}
             </main>
 
             {/* Details Modal */}

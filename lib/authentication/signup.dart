@@ -100,6 +100,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   hint: 'Password',
                   controller: passCtrl,
                   obscureText: true,
+                  isPasswordField: true,
                   fillColor: AppColors.inputFill,
                   borderColor: AppColors.primary,
                 ),
@@ -108,6 +109,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   hint: 'Confirm Password',
                   controller: confirmPassCtrl,
                   obscureText: true,
+                  isPasswordField: true,
                   fillColor: AppColors.inputFill,
                   borderColor: AppColors.primary,
                 ),
@@ -136,6 +138,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Enter a valid email address'),
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
                               return;
@@ -147,6 +150,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Fill all required fields'),
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
                               return;
@@ -157,6 +161,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   content: Text(
                                     'Password must be at least 6 characters',
                                   ),
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
                               return;
@@ -165,6 +170,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Passwords do not match'),
+                                  backgroundColor: Colors.redAccent,
                                 ),
                               );
                               return;
@@ -210,24 +216,51 @@ class _SignupScreenState extends State<SignupScreen> {
                               Navigator.of(
                                 context,
                               ).pushReplacementNamed(AppRoutes.home);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Account created successfully!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
                             } on FirebaseAuthException catch (e) {
                               debugPrint(
                                 '[signup] email auth exception code=${e.code} message=${e.message}',
                               );
-                              final msg = e.message ?? 'Sign up failed';
+                              String msg = 'Registration failed. Please try again.';
+                              if (e.code == 'email-already-in-use') {
+                                msg = 'This email is already registered to another account.';
+                              } else if (e.code == 'weak-password') {
+                                msg = 'Password is too weak. Use at least 6 characters.';
+                              } else if (e.code == 'operation-not-allowed') {
+                                msg = 'Email/password authentication is not enabled.';
+                              } else if (e.code == 'invalid-email') {
+                                msg = 'The email address provided is not valid.';
+                              } else if (e.code == 'network-request-failed') {
+                                msg = 'Network error. Please check your internet connection.';
+                              }
+                              
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(
                                 context,
-                              ).showSnackBar(SnackBar(content: Text(msg)));
+                              ).showSnackBar(SnackBar(
+                                content: Text(msg),
+                                backgroundColor: Colors.redAccent,
+                              ));
                             } catch (e) {
                               debugPrint('[signup] email unknown error: $e');
+                              if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Sign up failed')),
+                                const SnackBar(
+                                  content: Text('Sign up failed. Please try again.'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
                               );
                             } finally {
                               if (mounted)
                                 setState(() => _emailLoading = false);
                             }
                           },
+
                     child: _emailLoading
                         ? const SizedBox(
                             height: 22,

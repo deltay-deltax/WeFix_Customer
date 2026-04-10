@@ -3,8 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../data/models/service_request_model.dart';
 import '../core/constants/app_colors.dart';
+import '../widgets/full_screen_image_viewer.dart';
 import 'raise_complaint_screen.dart';
 import '../services/pdf_invoice_service.dart';
 
@@ -22,13 +24,84 @@ class _ServiceRequestDetailScreenState
     extends State<ServiceRequestDetailScreen> {
   int _pendingRating = 0;
   final TextEditingController _reviewCtrl = TextEditingController();
+  final TextEditingController _couponCtrl = TextEditingController();
   bool _hideRating = false;
   bool _isSubmitting = false;
+  bool _isApplyingCoupon = false;
 
   @override
   void dispose() {
     _reviewCtrl.dispose();
+    _couponCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _applyCoupon(ServiceRequestModel req) async {
+    final code = _couponCtrl.text.trim();
+    if (code.isEmpty) return;
+
+    setState(() => _isApplyingCoupon = true);
+    try {
+      final couponSnap = await FirebaseFirestore.instance
+          .collection('coupons')
+          .where('code', isEqualTo: code)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      if (couponSnap.docs.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Invalid or expired coupon code'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      final couponData = couponSnap.docs.first.data();
+      final num discount = couponData['discountAmount'] ?? 0;
+      final String type = couponData['type'] ?? 'fixed';
+
+      num finalDiscount = 0;
+      if (type == 'percentage') {
+        finalDiscount = (req.serviceDetails!.totalCost * discount) / 100;
+      } else {
+        finalDiscount = discount;
+      }
+
+      // Update Firestore
+      await FirebaseFirestore.instance
+          .collection('shop_users')
+          .doc(req.shopId)
+          .collection('requests')
+          .doc(req.id)
+          .update({
+        'appliedCoupon': code,
+        'discountAmount': finalDiscount,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Coupon applied! You saved ₹$finalDiscount'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error applying coupon: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isApplyingCoupon = false);
+    }
   }
 
   Future<void> _submitRating(ServiceRequestModel req) async {
@@ -159,13 +232,17 @@ class _ServiceRequestDetailScreenState
                 ? PageView.builder(
                     itemCount: req.images.length,
                     itemBuilder: (context, index) {
-                      return Image.network(
-                        req.images[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Center(
-                                child: Icon(Icons.broken_image,
-                                    size: 50, color: Colors.grey)),
+                      return GestureDetector(
+                        onTap: () => FullScreenImageViewer.open(context, req.images, index: index),
+                        child: CachedNetworkImage(
+                          imageUrl: req.images[index],
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                          errorWidget: (context, url, error) =>
+                              const Center(
+                                  child: Icon(Icons.broken_image,
+                                      size: 50, color: Colors.grey)),
+                        ),
                       );
                     },
                   )
@@ -572,6 +649,10 @@ class _ServiceRequestDetailScreenState
 
   Widget _buildTechnicianReport(ServiceRequestModel req) {
     final details = req.serviceDetails!;
+    final num discount = req.discountAmount ?? 0;
+    final num totalWithDelivery = details.totalCost + (double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0);
+    final num finalTotal = totalWithDelivery - discount;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -593,6 +674,44 @@ class _ServiceRequestDetailScreenState
             label: 'Parts Replaced',
             value: details.partsReplaced,
           ),
+          
+          if (details.photos.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Service Photos',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: details.photos.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () => FullScreenImageViewer.open(context, details.photos, index: index),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      width: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl: details.photos[index],
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+
           const SizedBox(height: 16),
           Divider(color: Colors.blue.shade200),
           const SizedBox(height: 8),
@@ -600,6 +719,14 @@ class _ServiceRequestDetailScreenState
           _CostRow(label: 'Parts Cost:', value: '₹${details.partsCost}'),
           if ((double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0) > 0)
             _CostRow(label: 'Courier Delivery:', value: '₹${req.borzoDeliveryCost}'),
+          
+          if (discount > 0)
+            _CostRow(
+              label: 'Discount (${req.appliedCoupon}):', 
+              value: '- ₹$discount',
+              valueColor: Colors.green.shade700,
+            ),
+
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -609,7 +736,7 @@ class _ServiceRequestDetailScreenState
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Text(
-                '₹${details.totalCost + (double.tryParse(req.borzoDeliveryCost ?? '0') ?? 0)}',
+                '₹${finalTotal.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -618,6 +745,38 @@ class _ServiceRequestDetailScreenState
               ),
             ],
           ),
+
+          if (req.status == 'payment_required' && (req.discountAmount == null || req.discountAmount == 0)) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _couponCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Coupon Code',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _isApplyingCoupon ? null : () => _applyCoupon(req),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _isApplyingCoupon 
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Apply'),
+                ),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
@@ -631,6 +790,7 @@ class _ServiceRequestDetailScreenState
                       text: 'Warranty: ',
                       style: TextStyle(
                           color: Colors.green, fontWeight: FontWeight.bold)),
+                  const TextSpan(text: ' '),
                   TextSpan(
                       text: details.warranty,
                       style: const TextStyle(color: Colors.green)),
@@ -641,6 +801,10 @@ class _ServiceRequestDetailScreenState
         ],
       ),
     );
+  }
+
+  void _showFullScreenImage(BuildContext context, List<String> images, int initialIndex) {
+    FullScreenImageViewer.open(context, images, index: initialIndex);
   }
 
   Widget _buildRatingSection(BuildContext context, ServiceRequestModel req) {
@@ -1085,8 +1249,9 @@ class _ReportItem extends StatelessWidget {
 class _CostRow extends StatelessWidget {
   final String label;
   final String value;
+  final Color? valueColor;
 
-  const _CostRow({super.key, required this.label, required this.value});
+  const _CostRow({super.key, required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -1097,8 +1262,11 @@ class _CostRow extends StatelessWidget {
         children: [
           Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
           Text(value,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                fontSize: 14,
+                color: valueColor ?? Colors.black,
+              )),
         ],
       ),
     );

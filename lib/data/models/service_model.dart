@@ -35,6 +35,10 @@ class ServiceRequestModel {
   final String? reverseBorzoTrackingUrl;
   final String? reverseBorzoStatus;
 
+  // ── Coupon & Discount ──
+  final String? appliedCoupon;
+  final num? discountAmount;
+
   // ── Home-visit flow (heavy appliances: Fridge, AC, Washer, TV) ──
   final bool? isHeavyAppliance;      // Set at creation time based on deviceType
   final DateTime? visitScheduledAt;  // Date+time the customer scheduled for technician visit
@@ -75,6 +79,8 @@ class ServiceRequestModel {
     this.reverseBorzoOrderId,
     this.reverseBorzoTrackingUrl,
     this.reverseBorzoStatus,
+    this.appliedCoupon,
+    this.discountAmount,
     this.isHeavyAppliance,
     this.visitScheduledAt,
     this.visitConfirmedByUser,
@@ -118,6 +124,8 @@ class ServiceRequestModel {
       reverseBorzoOrderId: data['reverseBorzoOrderId']?.toString(),
       reverseBorzoTrackingUrl: data['reverseBorzoTrackingUrl']?.toString(),
       reverseBorzoStatus: data['reverseBorzoStatus']?.toString(),
+      appliedCoupon: data['appliedCoupon'] as String?,
+      discountAmount: data['discountAmount'] as num?,
       isHeavyAppliance: data['isHeavyAppliance'] as bool?,
       visitScheduledAt: (data['visitScheduledAt'] as Timestamp?)?.toDate(),
       visitConfirmedByUser: data['visitConfirmedByUser'] as bool?,
@@ -157,6 +165,8 @@ class ServiceRequestModel {
       'reverseBorzoOrderId': reverseBorzoOrderId,
       'reverseBorzoTrackingUrl': reverseBorzoTrackingUrl,
       'reverseBorzoStatus': reverseBorzoStatus,
+      'appliedCoupon': appliedCoupon,
+      'discountAmount': discountAmount,
       'isHeavyAppliance': isHeavyAppliance,
       'visitScheduledAt': visitScheduledAt != null ? Timestamp.fromDate(visitScheduledAt!) : null,
       'visitConfirmedByUser': visitConfirmedByUser,
@@ -172,6 +182,7 @@ class ServiceDetails {
   final num totalCost;
   final String warranty;
   final DateTime? lastUpdated;
+  final List<String> photos;
 
   ServiceDetails({
     required this.laborCost,
@@ -181,6 +192,7 @@ class ServiceDetails {
     required this.totalCost,
     required this.warranty,
     this.lastUpdated,
+    required this.photos,
   });
 
   factory ServiceDetails.fromMap(Map<String, dynamic> map) {
@@ -197,6 +209,7 @@ class ServiceDetails {
           : map['lastUpdated'] is String
               ? DateTime.tryParse(map['lastUpdated'])
               : null,
+      photos: List<String>.from(map['photos'] ?? []),
     );
   }
 
@@ -209,7 +222,9 @@ class ServiceDetails {
       'totalCost': totalCost,
       'warranty': warranty,
       'lastUpdated': lastUpdated?.toIso8601String(),
+      'photos': photos,
     };
   }
 }
+
 
